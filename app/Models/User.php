@@ -11,31 +11,33 @@ use Filament\Models\Contracts\FilamentUser;
 
 class User extends Authenticatable implements FilamentUser
 {
-   use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
-   protected $fillable = [
-       'name',
-       'email',
-       'password',
-       'is_active'
-   ];
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'is_active',
+        'numero_telefono',
+        'empresa'
+    ];
 
-   protected $hidden = [
-       'password',
-       'remember_token',
-   ];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
-   protected function casts(): array
-   {
-       return [
-           'email_verified_at' => 'datetime',
-           'password' => 'hashed',
-           'is_active' => 'boolean',
-       ];
-   }
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+        ];
+    }
 
-   public function canAccessPanel(Panel $panel): bool
-   {
-       return $this->is_active;
-   }
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_active;
+    }
 }
