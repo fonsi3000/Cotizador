@@ -15,12 +15,6 @@ class Producto extends Model
      *
      * @var string
      */
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $table = 'productos';
 
     /**
@@ -36,7 +30,7 @@ class Producto extends Model
     ];
 
     /**
-     * Los atributos que deben ser convertidos.
+     * Los atributos que deben ser convertidos a tipos nativos.
      *
      * @var array
      */
@@ -45,13 +39,24 @@ class Producto extends Model
     ];
 
     /**
-     * Obtiene las listas de precios asociadas al producto.
+     * Relación: Listas de precios asociadas al producto.
+     *
+     * Se define como una relación de muchos a muchos con la tabla pivote
+     * 'producto_precio', usando 'codigo_producto' como clave foránea en
+     * productos y 'lista_precio_id' como clave foránea en lista_precios.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
     public function listasPrecios(): BelongsToMany
     {
-        return $this->belongsToMany(ListaPrecio::class, 'producto_precio')
-            ->withPivot('precio')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            ListaPrecio::class,         // Modelo relacionado
+            'producto_precio',           // Tabla pivote
+            'codigo_producto',           // Foreign key de este modelo (Producto)
+            'lista_precio_id'             // Foreign key del modelo relacionado (ListaPrecio)
+        )
+            ->withPivot('precio')             // Incluir campo 'precio' de la tabla pivote
+            ->withTimestamps();               // Incluir timestamps en la tabla pivote
     }
 
     /**

@@ -18,6 +18,7 @@ class ListProductos extends ListRecords
     {
         return [
             ExcelImportAction::make()
+                ->label('Importar productos')
                 ->processCollectionUsing(function (string $modelClass, Collection $collection) {
                     Log::info('Procesando colección en ExcelImportAction', [
                         'model_class' => $modelClass,

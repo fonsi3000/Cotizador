@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductoPrecioResource\Pages;
 use App\Filament\Resources\ProductoPrecioResource\RelationManagers;
 use App\Models\ProductoPrecio;
+use App\Models\Producto;
+use App\Models\ListaPrecio;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,26 +14,52 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProductoPrecioResource extends Resource
 {
     protected static ?string $model = ProductoPrecio::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+    protected static ?string $navigationLabel = 'Precios de Productos';
+
+    protected static ?string $modelLabel = 'Precio de Producto';
+
+    protected static ?string $pluralModelLabel = 'Precios de Productos';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('codigo_producto')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Select::make('lista_precio_id')
-                    ->relationship('listaPrecio', 'id')
-                    ->required(),
-                Forms\Components\TextInput::make('precio')
-                    ->required()
-                    ->numeric(),
+                Forms\Components\Card::make()
+                    ->schema([
+                        Forms\Components\Select::make('codigo_producto')
+                            ->label('Producto')
+                            ->options(Producto::where('activo', true)->pluck('descripcion', 'codigo'))
+                            ->searchable()
+                            ->required()
+                            ->preload(),
+
+                        Forms\Components\Select::make('lista_precio_id')
+                            ->label('Lista de Precios')
+                            ->options(ListaPrecio::where('activo', true)->pluck('nombre', 'id'))
+                            ->searchable()
+                            ->required()
+                            ->preload(),
+
+                        Forms\Components\TextInput::make('precio')
+                            ->label('Precio')
+                            ->prefix('$')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0)
+                            ->placeholder('0.00')
+                            ->helperText('Ingrese el precio sin separadores de miles'),
+                    ])
+                    ->columns(1),
             ]);
     }
 
@@ -40,33 +68,90 @@ class ProductoPrecioResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('codigo_producto')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('listaPrecio.id')
-                    ->numeric()
+                    ->label('Código')
+                    ->searchable()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('producto.descripcion')
+                    ->label('Producto')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(50),
+
+                Tables\Columns\TextColumn::make('listaPrecio.nombre')
+                    ->label('Lista de Precios')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('precio')
-                    ->numeric()
+                    ->label('Precio')
+                    ->money('COP')
                     ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Fecha de Creación')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Última Actualización')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('lista_precio_id')
+                    ->label('Lista de Precios')
+                    ->options(ListaPrecio::pluck('nombre', 'id'))
+                    ->searchable(),
+
+                Tables\Filters\Filter::make('precio_minimo')
+                    ->form([
+                        Forms\Components\TextInput::make('precio_min')
+                            ->label('Precio Mínimo')
+                            ->numeric(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['precio_min'],
+                                fn(Builder $query, $precio): Builder => $query->where('precio', '>=', $precio),
+                            );
+                    }),
+
+                Tables\Filters\Filter::make('precio_maximo')
+                    ->form([
+                        Forms\Components\TextInput::make('precio_max')
+                            ->label('Precio Máximo')
+                            ->numeric(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['precio_max'],
+                                fn(Builder $query, $precio): Builder => $query->where('precio', '<=', $precio),
+                            );
+                    }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalHeading('Editar Precio de Producto'),
+                Tables\Actions\DeleteAction::make()
+                    ->modalHeading('Eliminar Precio de Producto'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->modalHeading('Eliminar Precios de Productos'),
+                    ExportBulkAction::make()
+                        ->label('Exportar seleccionados'),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('No hay precios registrados')
+            ->emptyStateDescription('Comienza agregando precios a los productos o importándolos desde un archivo Excel.')
+            ->emptyStateIcon('heroicon-o-currency-dollar')
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
@@ -83,5 +168,16 @@ class ProductoPrecioResource extends Resource
             'create' => Pages\CreateProductoPrecio::route('/create'),
             'edit' => Pages\EditProductoPrecio::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['producto', 'listaPrecio']);
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

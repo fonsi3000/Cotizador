@@ -38,7 +38,7 @@ class ProductoPrecio extends Model
     ];
 
     /**
-     * Obtiene el producto asociado.
+     * Relación: Producto asociado.
      */
     public function producto(): BelongsTo
     {
@@ -46,7 +46,7 @@ class ProductoPrecio extends Model
     }
 
     /**
-     * Obtiene la lista de precios asociada.
+     * Relación: Lista de precios asociada.
      */
     public function listaPrecio(): BelongsTo
     {

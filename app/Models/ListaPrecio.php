@@ -41,11 +41,16 @@ class ListaPrecio extends Model
     ];
 
     /**
-     * Obtiene los productos asociados a esta lista de precios.
+     * Relación: Productos asociados a esta lista de precios.
      */
     public function productos(): BelongsToMany
     {
-        return $this->belongsToMany(Producto::class, 'producto_precio')
+        return $this->belongsToMany(
+            Producto::class,
+            'producto_precio',
+            'lista_precio_id',
+            'codigo_producto'
+        )
             ->withPivot('precio')
             ->withTimestamps();
     }

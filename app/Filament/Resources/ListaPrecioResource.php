@@ -17,7 +17,12 @@ class ListaPrecioResource extends Resource
 {
     protected static ?string $model = ListaPrecio::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // Cambiado a un icono de etiqueta de precio más adecuado
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
+
+    // Agregando título para navegación
+    protected static ?string $navigationLabel = 'Listas de Precios';
+    protected static ?string $pluralModelLabel = 'Listas de Precios';
 
     public static function form(Form $form): Form
     {
