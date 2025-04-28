@@ -15,6 +15,12 @@ class Producto extends Model
      *
      * @var string
      */
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $table = 'productos';
 
     /**
