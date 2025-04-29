@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductoPrecioResource\Pages;
-use App\Filament\Resources\ProductoPrecioResource\RelationManagers;
 use App\Models\ProductoPrecio;
 use App\Models\Producto;
 use App\Models\ListaPrecio;
@@ -13,7 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProductoPrecioResource extends Resource
@@ -21,13 +19,9 @@ class ProductoPrecioResource extends Resource
     protected static ?string $model = ProductoPrecio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
-
     protected static ?string $navigationLabel = 'Precios de Productos';
-
     protected static ?string $modelLabel = 'Precio de Producto';
-
     protected static ?string $pluralModelLabel = 'Precios de Productos';
-
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -38,14 +32,24 @@ class ProductoPrecioResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('codigo_producto')
                             ->label('Producto')
-                            ->options(Producto::where('activo', true)->pluck('descripcion', 'codigo'))
+                            ->options(
+                                Producto::where('activo', true)
+                                    ->get()
+                                    ->mapWithKeys(fn($producto) => [
+                                        $producto->codigo => "{$producto->codigo} - {$producto->descripcion}"
+                                    ])
+                            )
                             ->searchable()
                             ->required()
                             ->preload(),
 
                         Forms\Components\Select::make('lista_precio_id')
                             ->label('Lista de Precios')
-                            ->options(ListaPrecio::where('activo', true)->pluck('nombre', 'id'))
+                            ->options(
+                                ListaPrecio::where('activo', true)
+                                    ->get()
+                                    ->pluck('nombre', 'id')
+                            )
                             ->searchable()
                             ->required()
                             ->preload(),
@@ -103,7 +107,9 @@ class ProductoPrecioResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('lista_precio_id')
                     ->label('Lista de Precios')
-                    ->options(ListaPrecio::pluck('nombre', 'id'))
+                    ->options(
+                        ListaPrecio::pluck('nombre', 'id')
+                    )
                     ->searchable(),
 
                 Tables\Filters\Filter::make('precio_minimo')
@@ -113,11 +119,10 @@ class ProductoPrecioResource extends Resource
                             ->numeric(),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['precio_min'],
-                                fn(Builder $query, $precio): Builder => $query->where('precio', '>=', $precio),
-                            );
+                        return $query->when(
+                            $data['precio_min'],
+                            fn(Builder $query, $precio) => $query->where('precio', '>=', $precio)
+                        );
                     }),
 
                 Tables\Filters\Filter::make('precio_maximo')
@@ -127,11 +132,10 @@ class ProductoPrecioResource extends Resource
                             ->numeric(),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['precio_max'],
-                                fn(Builder $query, $precio): Builder => $query->where('precio', '<=', $precio),
-                            );
+                        return $query->when(
+                            $data['precio_max'],
+                            fn(Builder $query, $precio) => $query->where('precio', '<=', $precio)
+                        );
                     }),
             ])
             ->actions([

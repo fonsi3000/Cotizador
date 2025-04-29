@@ -18,7 +18,7 @@ class Producto extends Model
     protected $table = 'productos';
 
     /**
-     * Los atributos que son asignables masivamente.
+     * Los atributos que son asignables masivamente.  
      *
      * @var array<int, string>
      */
