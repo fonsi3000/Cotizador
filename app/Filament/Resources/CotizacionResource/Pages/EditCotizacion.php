@@ -10,10 +10,10 @@ class EditCotizacion extends EditRecord
 {
     protected static string $resource = CotizacionResource::class;
 
-    protected function getHeaderActions(): array
+    protected function afterSave(): void
     {
-        return [
-            Actions\DeleteAction::make(),
-        ];
+        $this->record->update([
+            'total_cotizacion' => $this->record->items->sum('subtotal'),
+        ]);
     }
 }
