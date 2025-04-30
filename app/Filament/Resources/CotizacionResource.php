@@ -20,6 +20,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Hidden;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\Action;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CotizacionResource extends Resource
 {
@@ -82,7 +84,6 @@ class CotizacionResource extends Resource
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(function (callable $set) {
-                                        // Limpiar lista_precio_id, precio_unitario, cantidad, subtotal
                                         $set('lista_precio_id', null);
                                         $set('precio_unitario', null);
                                         $set('cantidad', 1);
@@ -93,14 +94,10 @@ class CotizacionResource extends Resource
                                     ->label('Lista de Precio')
                                     ->options(function (callable $get) {
                                         $productoId = $get('producto_id');
-                                        if (!$productoId) {
-                                            return [];
-                                        }
+                                        if (!$productoId) return [];
 
                                         $producto = Producto::find($productoId);
-                                        if (!$producto) {
-                                            return [];
-                                        }
+                                        if (!$producto) return [];
 
                                         $listasPrecioIds = ProductoPrecio::where('codigo_producto', $producto->codigo)
                                             ->pluck('lista_precio_id')
@@ -208,6 +205,52 @@ class CotizacionResource extends Resource
             ])
             ->filters([])
             ->actions([
+                // Nueva acción "Ver" que muestra los detalles de la cotización en un modal
+                Action::make('view')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->modalHeading(fn(Cotizacion $record): string => "Cotización: {$record->nombre_cliente}")
+                    ->modalWidth('5xl')
+                    ->modalContent(function (Cotizacion $record) {
+                        // Cargamos la cotización con sus relaciones
+                        $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
+
+                        // Retornamos la vista existente con los datos de la cotización
+                        return view('Cotizacion.Cotizaciones', [
+                            'cotizacion' => $record,
+                        ]);
+                    })
+                    ->modalFooterActions([
+                        // Acción para descargar la cotización como PDF
+                        Action::make('descargar')
+                            ->label('Descargar')
+                            ->icon('heroicon-o-arrow-down')
+                            ->color('gray')
+                            ->action(function (Cotizacion $record) {
+                                return response()->streamDownload(function () use ($record) {
+                                    // Cargamos la cotización con sus relaciones
+                                    $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
+
+                                    // Generamos el PDF
+                                    echo Pdf::loadView('Cotizacion.CotizacionPDF', [
+                                        'cotizacion' => $record,
+                                        'isPdfDownload' => true,
+                                    ])->output();
+                                }, "cotizacion-{$record->id}.pdf");
+                            }),
+                        Action::make('imprimir')
+                            ->label('Imprimir')
+                            ->icon('heroicon-o-printer')
+                            ->color('success')
+                            ->url(fn(Cotizacion $record) => route('cotizacion.tirilla', $record))
+                            ->openUrlInNewTab(),
+                        Action::make('cerrar')
+                            ->label('Cerrar')
+                            ->color('secondary')
+                            ->action(fn() => null),
+                    ]),
+
                 EditAction::make()
                     ->modalHeading('Editar Cotización')
                     ->modalWidth('5xl'),
@@ -216,7 +259,7 @@ class CotizacionResource extends Resource
                 Tables\Actions\DeleteBulkAction::make(),
             ])
             ->emptyStateHeading('No hay cotizaciones registradas')
-            ->emptyStateDescription('Crea una nueva cotización haciendo clic en "Crear"')
+            ->emptyStateDescription('Crea una nueva cotización haciendo clic en \"Crear\"')
             ->emptyStateIcon('heroicon-o-clipboard-document-list')
             ->emptyStateActions([
                 CreateAction::make()
