@@ -16,4 +16,8 @@ class EditCotizacion extends EditRecord
             'total_cotizacion' => $this->record->items->sum('subtotal'),
         ]);
     }
+    protected function getRedirectUrl(): string
+    {
+        return CotizacionResource::getUrl(); // Esto lleva al index
+    }
 }

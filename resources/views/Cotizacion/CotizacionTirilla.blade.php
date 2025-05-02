@@ -84,7 +84,7 @@
             <div class="titulo">ESPUMAS MEDELLÍN S.A</div>
             <div>N.I.T: 890921665-9</div>
             <div>Dirección: CARRERA 48 98 SUR 05 LA ESTRELLA</div>
-            <div>Tel: 3102070759</div>
+            <div>Tel: 4441423 Ext:4021</div>
         </div>
 
         <div class="linea"></div>
@@ -120,9 +120,9 @@
         <div class="linea"></div>
 
         @php
-            $subtotal = $cotizacion->subtotal ?? $cotizacion->items->sum('subtotal');
-            $iva = $cotizacion->iva ?? ($subtotal * 0.19);
-            $total = $cotizacion->total_cotizacion ?? ($subtotal + $iva);
+            $subtotal = $cotizacion->items->sum('subtotal');
+            $iva = round($subtotal * 0.19, 2);
+            $total = $subtotal + $iva;
         @endphp
 
         <div class="totales">

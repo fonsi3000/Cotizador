@@ -67,22 +67,25 @@
             </tbody>
             <tfoot>
                 @php
-                    $subtotal = $cotizacion->subtotal ?? $cotizacion->items->sum('subtotal');
-                    $iva = $cotizacion->iva ?? ($subtotal * 0.19);
-                    $total = $cotizacion->total_cotizacion ?? ($subtotal + $iva);
+                $subtotal = $cotizacion->items->sum('subtotal');
+                $iva = round($subtotal * 0.19, 2);
+                $total = $subtotal + $iva;
                 @endphp
-                <tr class="bg-gray-100 font-bold">
-                    <td colspan="6" class="py-2 px-4 border-b text-right">SUBTOTAL:</td>
-                    <td class="py-2 px-4 border-b text-right">{{ number_format($subtotal, 2, ',', '.') }}</td>
-                </tr>
-                <tr class="bg-gray-100 font-bold">
-                    <td colspan="6" class="py-2 px-4 border-b text-right">IVA (19%):</td>
-                    <td class="py-2 px-4 border-b text-right">{{ number_format($iva, 2, ',', '.') }}</td>
-                </tr>
-                <tr class="bg-gray-100 font-bold text-base">
-                    <td colspan="6" class="py-2 px-4 border-b text-right">TOTAL:</td>
-                    <td class="py-2 px-4 border-b text-right">{{ number_format($total, 2, ',', '.') }}</td>
-                </tr>
+                <tfoot>
+                    <tr class="bg-gray-100 font-bold">
+                        <td colspan="6" class="py-2 px-4 border-b text-right">SUBTOTAL:</td>
+                        <td class="py-2 px-4 border-b text-right">{{ number_format($subtotal, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr class="bg-gray-100 font-bold">
+                        <td colspan="6" class="py-2 px-4 border-b text-right">IVA (19%):</td>
+                        <td class="py-2 px-4 border-b text-right">{{ number_format($iva, 2, ',', '.') }}</td>
+                    </tr>
+                    <tr class="bg-gray-100 font-bold text-base">
+                        <td colspan="6" class="py-2 px-4 border-b text-right">TOTAL:</td>
+                        <td class="py-2 px-4 border-b text-right">{{ number_format($total, 2, ',', '.') }}</td>
+                    </tr>
+                </tfoot>
+                
             </tfoot>
         </table>
     </div>

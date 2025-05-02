@@ -2,52 +2,34 @@
 
 namespace App\Mail;
 
+use App\Models\Cotizacion as CotizacionModel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class Cotizacion extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct()
+    public CotizacionModel $cotizacion;
+
+    public function __construct(CotizacionModel $cotizacion)
     {
-        //
+        $this->cotizacion = $cotizacion;
     }
 
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
+    public function build()
     {
-        return new Envelope(
-            subject: 'Cotizacion',
-        );
-    }
+        $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
+            'cotizacion' => $this->cotizacion,
+        ])->output();
 
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            view: 'mails.cotizacion',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
+        return $this->subject('Gracias por cotizar con Espumas Medellín')
+            ->view('mails.cotizacion')
+            ->with(['cotizacion' => $this->cotizacion])
+            ->attachData($pdf, "cotizacion-{$this->cotizacion->id}.pdf", [
+                'mime' => 'application/pdf',
+            ]);
     }
 }

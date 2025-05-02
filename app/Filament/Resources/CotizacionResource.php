@@ -50,7 +50,7 @@ class CotizacionResource extends Resource
                                     ->required()
                                     ->maxLength(50),
                                 TextInput::make('numero_celular_cliente')
-                                    ->label('Número de Celular')
+                                    ->label('Número de Celular (WhatsApp)')
                                     ->required()
                                     ->maxLength(20),
                                 TextInput::make('correo_electronico_cliente')
@@ -194,9 +194,10 @@ class CotizacionResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('total_cotizacion')
-                    ->label('Total Cotización')
+                    ->label('Total con IVA')
                     ->money('COP')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(fn(Cotizacion $record) => $record->total_cotizacion * 1.19),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha')
