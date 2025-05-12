@@ -6,6 +6,7 @@ use App\Models\Cotizacion;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class WhatsAppService
 {
@@ -21,7 +22,7 @@ class WhatsAppService
         // Generar PDF y guardarlo en el disco público (si no existe ya)
         $pdfPath = "cotizaciones/cotizacion-{$cotizacion->id}.pdf";
         if (!Storage::disk('public')->exists($pdfPath)) {
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('Cotizacion.CotizacionPDF', [
+            $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
                 'cotizacion' => $cotizacion->load(['items.producto', 'items.listaPrecio', 'usuario']),
                 'isPdfDownload' => true,
             ])->output();
@@ -29,8 +30,8 @@ class WhatsAppService
             Storage::disk('public')->put($pdfPath, $pdf);
         }
 
-        // Obtener la URL pública del archivo
-        $publicUrl = asset("storage/{$pdfPath}");
+        // Obtener la URL pública del archivo servida por Laravel (no por Nginx)
+        $publicUrl = route('cotizacion.pdf', ['cotizacion' => $cotizacion->id]);
 
         // Construcción del payload con header tipo DOCUMENT
         $payload = [
@@ -59,11 +60,13 @@ class WhatsAppService
             ],
         ];
 
+        // Enviar la solicitud a la API de WhatsApp
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('WHATSAPP_TOKEN'),
             'Content-Type' => 'application/json',
         ])->post("https://graph.facebook.com/v22.0/" . env('WHATSAPP_PHONE_ID') . "/messages", $payload);
 
+        // Log de errores si falla el envío
         if ($response->failed()) {
             Log::error('Error al enviar WhatsApp', [
                 'response' => $response->json(),
