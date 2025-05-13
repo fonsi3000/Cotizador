@@ -19,21 +19,23 @@ class WhatsAppService
             return;
         }
 
-        // Ruta del archivo PDF original (siempre se sobrescribe)
+        // Ruta del archivo PDF original
         $originalPath = storage_path("app/public/cotizaciones/cotizacion-{$cotizacion->id}.pdf");
 
-        Log::info("Generando PDF para cotización ID {$cotizacion->id}");
-
-        try {
-            $cotizacion->load('items.producto');
-            $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', compact('cotizacion'));
-            $pdf->save($originalPath);
-            Log::info("PDF generado exitosamente para cotización ID {$cotizacion->id}");
-        } catch (\Throwable $e) {
-            Log::error("Error generando PDF para cotización ID {$cotizacion->id}", [
-                'error' => $e->getMessage()
-            ]);
-            return;
+        // Si no existe el PDF, generarlo automáticamente
+        if (!file_exists($originalPath)) {
+            Log::warning("PDF no encontrado para cotización ID {$cotizacion->id}, generando...");
+            try {
+                $cotizacion->load('items.producto'); // Carga relaciones si es necesario
+                $pdf = Pdf::loadView('Cotizacion.CotizacionPdf', compact('cotizacion'));
+                $pdf->save($originalPath);
+                Log::info("PDF generado exitosamente para cotización ID {$cotizacion->id}");
+            } catch (\Throwable $e) {
+                Log::error("Error generando PDF para cotización ID {$cotizacion->id}", [
+                    'error' => $e->getMessage()
+                ]);
+                return;
+            }
         }
 
         // Crear nombre y ruta del archivo temporal
@@ -106,12 +108,12 @@ class WhatsAppService
         }
 
         // Eliminar el archivo temporal después de 5 minutos
-        self::eliminarTemporal($tempPath, 300);
+        self::eliminarTemporal($tempPath, 60);
     }
 
     protected static function eliminarTemporal(string $filePath, int $delaySeconds = 300): void
     {
-        dispatch(function () use ($filePath, $delaySeconds) {
+        dispatch(function () use ($filePath) {
             sleep($delaySeconds);
             if (file_exists($filePath)) {
                 unlink($filePath);
