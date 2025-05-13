@@ -77,19 +77,21 @@ class WhatsAppService
                             ],
                         ],
                     ],
-                    // 2) Cuerpo: inyectar el nombre del cliente en {{name}}
+                    // 2) Cuerpo: variable nombrada {{name}}, se requiere 'parameter_name'
                     [
                         'type' => 'body',
                         'parameters' => [
                             [
                                 'type' => 'text',
                                 'text' => $cotizacion->nombre_cliente,
+                                'parameter_name' => 'name',
                             ],
                         ],
                     ],
                 ],
             ],
         ];
+
 
         $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
         $token = config('services.whatsapp.token');
