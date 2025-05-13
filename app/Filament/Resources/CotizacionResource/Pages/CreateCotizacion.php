@@ -32,23 +32,25 @@ class CreateCotizacion extends CreateRecord
             'total_cotizacion' => $this->record->items->sum('subtotal'),
         ]);
 
-        // Generar y guardar el PDF automáticamente
+        // Cargar relaciones necesarias para el PDF y correo
         $this->record->load(['items.producto', 'items.listaPrecio', 'usuario']);
 
+        // Generar PDF
         $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
             'cotizacion' => $this->record,
             'isPdfDownload' => true,
         ])->output();
 
+        // Guardar PDF en storage/app/public/cotizaciones/
         Storage::put("public/cotizaciones/cotizacion-{$this->record->id}.pdf", $pdf);
 
-        // Enviar por correo si tiene correo válido
+        // Enviar por correo si hay correo electrónico
         if ($this->record->correo_electronico_cliente) {
             Mail::to($this->record->correo_electronico_cliente)
                 ->send(new CotizacionMail($this->record));
         }
 
-        // ✅ WhatsApp no se envía automáticamente aquí
+        // Nota: WhatsApp se envía manualmente desde el botón en la tabla
     }
 
     /**
