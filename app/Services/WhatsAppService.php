@@ -52,7 +52,10 @@ class WhatsAppService
         // Construir URL pública
         $publicUrl = config('services.whatsapp.public_url') . "/tmp-cotizaciones/{$tempFileName}";
 
-        // Construir payload (NO MODIFICADO)
+        // Obtener el nombre del cliente para la plantilla
+        $clienteNombre = $cotizacion->nombre_cliente;
+
+        // Construir payload incluyendo el header (documento) y el body (nombre)
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
@@ -61,6 +64,7 @@ class WhatsAppService
                 'name' => config('services.whatsapp.template'),
                 'language' => ['code' => 'es_CO'],
                 'components' => [
+                    // 1) Encabezado: el documento PDF
                     [
                         'type' => 'header',
                         'parameters' => [
@@ -73,6 +77,16 @@ class WhatsAppService
                             ],
                         ],
                     ],
+                    // 2) Cuerpo: inyectar el nombre del cliente en {{name}}
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            [
+                                'type' => 'text',
+                                'text' => $clienteNombre,
+                            ],
+                        ],
+                    ],
                 ],
             ],
         ];
@@ -80,13 +94,13 @@ class WhatsAppService
         $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
         $token = config('services.whatsapp.token');
 
-        // Logs de depuración (NO MODIFICADO)
+        // Logs de depuración
         Log::info('WhatsApp Phone ID:', [config('services.whatsapp.phone_id')]);
         Log::info('WhatsApp URL:', [$url]);
         Log::info('Payload WhatsApp:', $payload);
         Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
 
-        // Enviar solicitud a la API (NO MODIFICADO)
+        // Enviar solicitud a la API
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
