@@ -7,6 +7,7 @@ use App\Models\Cotizacion;
 use App\Models\Producto;
 use App\Models\ProductoPrecio;
 use App\Models\ListaPrecio;
+use App\Services\WhatsAppService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -178,35 +179,15 @@ class CotizacionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre_cliente')
-                    ->label('Cliente')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('documento_cliente')
-                    ->label('Documento')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('usuario.name')
-                    ->label('Asesor')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('total_cotizacion')
-                    ->label('Total con IVA')
-                    ->money('COP')
-                    ->sortable()
+                Tables\Columns\TextColumn::make('nombre_cliente')->label('Cliente')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('documento_cliente')->label('Documento')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('usuario.name')->label('Asesor')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('total_cotizacion')->label('Total con IVA')->money('COP')->sortable()
                     ->getStateUsing(fn(Cotizacion $record) => $record->total_cotizacion * 1.19),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Fecha')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->label('Fecha')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->filters([])
             ->actions([
-                // Nueva acción "Ver" que muestra los detalles de la cotización en un modal
                 Action::make('view')
                     ->label('Ver')
                     ->icon('heroicon-o-eye')
@@ -214,26 +195,17 @@ class CotizacionResource extends Resource
                     ->modalHeading(fn(Cotizacion $record): string => "Cotización: {$record->nombre_cliente}")
                     ->modalWidth('5xl')
                     ->modalContent(function (Cotizacion $record) {
-                        // Cargamos la cotización con sus relaciones
                         $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
-
-                        // Retornamos la vista existente con los datos de la cotización
-                        return view('Cotizacion.Cotizaciones', [
-                            'cotizacion' => $record,
-                        ]);
+                        return view('Cotizacion.Cotizaciones', ['cotizacion' => $record]);
                     })
                     ->modalFooterActions([
-                        // Acción para descargar la cotización como PDF
                         Action::make('descargar')
                             ->label('Descargar')
                             ->icon('heroicon-o-arrow-down')
                             ->color('gray')
                             ->action(function (Cotizacion $record) {
                                 return response()->streamDownload(function () use ($record) {
-                                    // Cargamos la cotización con sus relaciones
                                     $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
-
-                                    // Generamos el PDF
                                     echo Pdf::loadView('Cotizacion.CotizacionPDF', [
                                         'cotizacion' => $record,
                                         'isPdfDownload' => true,
@@ -246,15 +218,20 @@ class CotizacionResource extends Resource
                             ->color('success')
                             ->url(fn(Cotizacion $record) => route('cotizacion.tirilla', $record))
                             ->openUrlInNewTab(),
+                        Action::make('enviar_whatsapp')
+                            ->label('Enviar al WhatsApp')
+                            ->icon('heroicon-o-chat-bubble-left-right')
+                            ->color('success')
+                            ->action(function (Cotizacion $record) {
+                                WhatsAppService::enviarCotizacion($record);
+                            }),
                         Action::make('cerrar')
                             ->label('Cerrar')
                             ->color('secondary')
                             ->action(fn() => null),
                     ]),
 
-                EditAction::make()
-                    ->modalHeading('Editar Cotización')
-                    ->modalWidth('5xl'),
+                EditAction::make()->modalHeading('Editar Cotización')->modalWidth('5xl'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),

@@ -5,35 +5,23 @@ namespace App\Services;
 use App\Models\Cotizacion;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class WhatsAppService
 {
     public static function enviarCotizacion(Cotizacion $cotizacion): void
     {
-        // Validar número de celular
+        // Limpiar el número de celular y validar longitud
         $telefono = preg_replace('/[^0-9]/', '', $cotizacion->numero_celular_cliente);
         if (!$telefono || strlen($telefono) < 10) {
             Log::warning("Número no válido para WhatsApp en cotización ID {$cotizacion->id}");
             return;
         }
 
-        // Generar PDF y guardarlo en el disco público (si no existe ya)
-        $pdfPath = "cotizaciones/cotizacion-{$cotizacion->id}.pdf";
-        if (!Storage::disk('public')->exists($pdfPath)) {
-            $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
-                'cotizacion' => $cotizacion->load(['items.producto', 'items.listaPrecio', 'usuario']),
-                'isPdfDownload' => true,
-            ])->output();
+        // Construir la URL pública del archivo PDF (ajusta el dominio en producción)
+        $archivo = "cotizacion-{$cotizacion->id}.pdf";
+        $publicUrl = env('WHATSAPP_PUBLIC_BASE_URL', 'https://cotizador.espumasmedellin.com') . "/storage/cotizaciones/{$archivo}";
 
-            Storage::disk('public')->put($pdfPath, $pdf);
-        }
-
-        // Obtener la URL pública del archivo servida por Laravel (no por Nginx)
-        $publicUrl = route('cotizacion.pdf', ['cotizacion' => $cotizacion->id]);
-
-        // Construcción del payload con header tipo DOCUMENT
+        // Armar el payload para la plantilla con header tipo DOCUMENT
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
@@ -51,26 +39,29 @@ class WhatsAppService
                                 'type' => 'document',
                                 'document' => [
                                     'link' => $publicUrl,
-                                    'filename' => "cotizacion-{$cotizacion->id}.pdf"
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                    'filename' => $archivo,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
         ];
 
-        // Enviar la solicitud a la API de WhatsApp
+        // Enviar la solicitud a la API de WhatsApp Cloud
+        $url = "https://graph.facebook.com/v22.0/" . env('WHATSAPP_PHONE_ID') . "/messages";
+
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('WHATSAPP_TOKEN'),
             'Content-Type' => 'application/json',
-        ])->post("https://graph.facebook.com/v22.0/" . env('WHATSAPP_PHONE_ID') . "/messages", $payload);
+        ])->post($url, $payload);
 
-        // Log de errores si falla el envío
+        // Verificar si hubo error
         if ($response->failed()) {
             Log::error('Error al enviar WhatsApp', [
-                'response' => $response->json(),
                 'cotizacion_id' => $cotizacion->id,
+                'response' => $response->json(),
+                'url_pdf' => $publicUrl,
             ]);
         }
     }

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CotizacionResource\Pages;
 
 use App\Filament\Resources\CotizacionResource;
 use App\Mail\Cotizacion as CotizacionMail;
-use App\Services\WhatsAppService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Model;
@@ -26,12 +25,12 @@ class CreateCotizacion extends CreateRecord
      */
     protected function afterCreate(): void
     {
-        // Calcular total de la cotización con base en los ítems
+        // Calcular el total de la cotización
         $this->record->update([
             'total_cotizacion' => $this->record->items->sum('subtotal'),
         ]);
 
-        // Enviar por correo si tiene dirección válida
+        // Enviar por correo si tiene correo válido
         if ($this->record->correo_electronico_cliente) {
             Mail::to($this->record->correo_electronico_cliente)
                 ->send(new CotizacionMail(
@@ -39,10 +38,7 @@ class CreateCotizacion extends CreateRecord
                 ));
         }
 
-        // Enviar mensaje por WhatsApp si tiene número válido
-        if ($this->record->numero_celular_cliente) {
-            WhatsAppService::enviarCotizacion($this->record);
-        }
+        // ✅ Ya no se envía WhatsApp aquí (eso se hace manualmente luego)
     }
 
     /**
