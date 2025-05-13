@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\Cotizacion;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class WhatsAppService
 {
@@ -18,14 +19,10 @@ class WhatsAppService
             return;
         }
 
-        // Verificar archivo original
-        $originalPath = storage_path("app/public/cotizaciones/cotizacion-{$cotizacion->id}.pdf");
-        if (!file_exists($originalPath)) {
-            Log::error("Archivo PDF no encontrado para cotización ID {$cotizacion->id}");
-            return;
-        }
+        // Cargar relaciones necesarias
+        $cotizacion->load(['items.producto', 'items.listaPrecio', 'usuario']);
 
-        // Crear archivo temporal
+        // Crear archivo temporal directo desde la vista PDF
         $random = Str::random(20);
         $tempFileName = "cotizacion-{$cotizacion->id}-{$random}.pdf";
         $tempPath = public_path("tmp-cotizaciones/{$tempFileName}");
@@ -36,14 +33,26 @@ class WhatsAppService
             Log::info('Carpeta tmp-cotizaciones creada');
         }
 
-        // Copiar archivo temporalmente
-        File::copy($originalPath, $tempPath);
-        Log::info("Archivo temporal creado: {$tempPath}");
+        // Generar PDF dinámicamente y guardarlo
+        try {
+            $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
+                'cotizacion' => $cotizacion,
+                'isPdfDownload' => true,
+            ])->output();
+
+            File::put($tempPath, $pdf);
+            Log::info("Archivo PDF generado y guardado temporalmente: {$tempPath}");
+        } catch (\Throwable $e) {
+            Log::error("Error al generar PDF para cotización ID {$cotizacion->id}", [
+                'exception' => $e->getMessage(),
+            ]);
+            return;
+        }
 
         // Construir URL pública
         $publicUrl = config('services.whatsapp.public_url') . "/tmp-cotizaciones/{$tempFileName}";
 
-        // Construir payload
+        // Construir payload (NO MODIFICADO)
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
@@ -71,13 +80,13 @@ class WhatsAppService
         $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
         $token = config('services.whatsapp.token');
 
-        // Logs de depuración
+        // Logs de depuración (NO MODIFICADO)
         Log::info('WhatsApp Phone ID:', [config('services.whatsapp.phone_id')]);
         Log::info('WhatsApp URL:', [$url]);
         Log::info('Payload WhatsApp:', $payload);
         Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
 
-        // Enviar solicitud a la API
+        // Enviar solicitud a la API (NO MODIFICADO)
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
