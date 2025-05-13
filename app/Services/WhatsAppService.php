@@ -18,14 +18,14 @@ class WhatsAppService
             return;
         }
 
-        // Ruta original del PDF
+        // Verificar archivo original
         $originalPath = storage_path("app/public/cotizaciones/cotizacion-{$cotizacion->id}.pdf");
         if (!file_exists($originalPath)) {
             Log::error("Archivo PDF no encontrado para cotización ID {$cotizacion->id}");
             return;
         }
 
-        // Crear copia temporal en public/tmp-cotizaciones/
+        // Crear archivo temporal
         $random = Str::random(20);
         $tempFileName = "cotizacion-{$cotizacion->id}-{$random}.pdf";
         $tempPath = public_path("tmp-cotizaciones/{$tempFileName}");
@@ -33,21 +33,23 @@ class WhatsAppService
         // Crear carpeta si no existe
         if (!File::exists(public_path("tmp-cotizaciones"))) {
             File::makeDirectory(public_path("tmp-cotizaciones"), 0755, true);
+            Log::info('Carpeta tmp-cotizaciones creada');
         }
 
-        // Copiar el archivo temporalmente
+        // Copiar archivo temporalmente
         File::copy($originalPath, $tempPath);
+        Log::info("Archivo temporal creado: {$tempPath}");
 
-        // URL pública temporal
-        $publicUrl = env('WHATSAPP_PUBLIC_BASE_URL', 'https://cotizador.espumasmedellin.com') . "/tmp-cotizaciones/{$tempFileName}";
+        // Construir URL pública
+        $publicUrl = config('services.whatsapp.public_url') . "/tmp-cotizaciones/{$tempFileName}";
 
-        // Payload WhatsApp
+        // Construir payload
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
             'type' => 'template',
             'template' => [
-                'name' => env('WHATSAPP_TEMPLATE_NAME', 'cotizacion'),
+                'name' => config('services.whatsapp.template'),
                 'language' => ['code' => 'es_CO'],
                 'components' => [
                     [
@@ -66,10 +68,18 @@ class WhatsAppService
             ],
         ];
 
-        $url = "https://graph.facebook.com/v22.0/" . env('WHATSAPP_PHONE_ID') . "/messages";
+        $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
+        $token = config('services.whatsapp.token');
 
+        // Logs de depuración
+        Log::info('WhatsApp Phone ID:', [config('services.whatsapp.phone_id')]);
+        Log::info('WhatsApp URL:', [$url]);
+        Log::info('Payload WhatsApp:', $payload);
+        Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
+
+        // Enviar solicitud a la API
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('WHATSAPP_TOKEN'),
+            'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
         ])->post($url, $payload);
 
@@ -79,19 +89,21 @@ class WhatsAppService
                 'response' => $response->json(),
                 'url_pdf' => $publicUrl,
             ]);
+        } else {
+            Log::info("WhatsApp enviado correctamente a 57{$telefono}");
         }
 
-        // Programar eliminación del archivo en 5 minutos
-        self::eliminarTemporal($tempPath, 300); // 300 segundos
+        // Eliminar archivo después de 5 minutos
+        self::eliminarTemporal($tempPath, 300);
     }
 
     protected static function eliminarTemporal(string $filePath, int $delaySeconds = 300): void
     {
-        // Ejecutar después de un retraso con un job o un sleep simple (si estás fuera de cola)
         dispatch(function () use ($filePath) {
-            sleep(300); // 5 minutos
+            sleep(300);
             if (file_exists($filePath)) {
                 unlink($filePath);
+                Log::info("Archivo temporal eliminado: {$filePath}");
             }
         })->delay(now()->addSeconds($delaySeconds));
     }
