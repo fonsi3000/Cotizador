@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class WhatsAppService
 {
@@ -19,26 +18,14 @@ class WhatsAppService
             return;
         }
 
-        // Ruta del archivo PDF original
+        // Verificar archivo original
         $originalPath = storage_path("app/public/cotizaciones/cotizacion-{$cotizacion->id}.pdf");
-
-        // Si no existe el PDF, generarlo automáticamente
         if (!file_exists($originalPath)) {
-            Log::warning("PDF no encontrado para cotización ID {$cotizacion->id}, generando...");
-            try {
-                $cotizacion->load('items.producto'); // Carga relaciones si es necesario
-                $pdf = Pdf::loadView('Cotizacion.CotizacionPdf', compact('cotizacion'));
-                $pdf->save($originalPath);
-                Log::info("PDF generado exitosamente para cotización ID {$cotizacion->id}");
-            } catch (\Throwable $e) {
-                Log::error("Error generando PDF para cotización ID {$cotizacion->id}", [
-                    'error' => $e->getMessage()
-                ]);
-                return;
-            }
+            Log::error("Archivo PDF no encontrado para cotización ID {$cotizacion->id}");
+            return;
         }
 
-        // Crear nombre y ruta del archivo temporal
+        // Crear archivo temporal
         $random = Str::random(20);
         $tempFileName = "cotizacion-{$cotizacion->id}-{$random}.pdf";
         $tempPath = public_path("tmp-cotizaciones/{$tempFileName}");
@@ -49,14 +36,14 @@ class WhatsAppService
             Log::info('Carpeta tmp-cotizaciones creada');
         }
 
-        // Copiar el archivo al directorio temporal
+        // Copiar archivo temporalmente
         File::copy($originalPath, $tempPath);
         Log::info("Archivo temporal creado: {$tempPath}");
 
-        // URL pública temporal para WhatsApp
+        // Construir URL pública
         $publicUrl = config('services.whatsapp.public_url') . "/tmp-cotizaciones/{$tempFileName}";
 
-        // Payload para plantilla WhatsApp
+        // Construir payload
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
@@ -81,8 +68,7 @@ class WhatsAppService
             ],
         ];
 
-        // URL de la API de WhatsApp con versión 22.2
-        $url = "https://graph.facebook.com/v22.2/" . config('services.whatsapp.phone_id') . "/messages";
+        $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
         $token = config('services.whatsapp.token');
 
         // Logs de depuración
@@ -91,7 +77,7 @@ class WhatsAppService
         Log::info('Payload WhatsApp:', $payload);
         Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
 
-        // Enviar la solicitud
+        // Enviar solicitud a la API
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
@@ -107,14 +93,14 @@ class WhatsAppService
             Log::info("WhatsApp enviado correctamente a 57{$telefono}");
         }
 
-        // Eliminar el archivo temporal después de 5 minutos
-        self::eliminarTemporal($tempPath, 60);
+        // Eliminar archivo después de 5 minutos
+        self::eliminarTemporal($tempPath, 300);
     }
 
     protected static function eliminarTemporal(string $filePath, int $delaySeconds = 300): void
     {
         dispatch(function () use ($filePath) {
-            sleep($delaySeconds);
+            sleep(300);
             if (file_exists($filePath)) {
                 unlink($filePath);
                 Log::info("Archivo temporal eliminado: {$filePath}");

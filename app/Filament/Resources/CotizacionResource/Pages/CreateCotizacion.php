@@ -4,8 +4,10 @@ namespace App\Filament\Resources\CotizacionResource\Pages;
 
 use App\Filament\Resources\CotizacionResource;
 use App\Mail\Cotizacion as CotizacionMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 
 class CreateCotizacion extends CreateRecord
@@ -30,15 +32,23 @@ class CreateCotizacion extends CreateRecord
             'total_cotizacion' => $this->record->items->sum('subtotal'),
         ]);
 
+        // Generar y guardar el PDF automáticamente
+        $this->record->load(['items.producto', 'items.listaPrecio', 'usuario']);
+
+        $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
+            'cotizacion' => $this->record,
+            'isPdfDownload' => true,
+        ])->output();
+
+        Storage::put("public/cotizaciones/cotizacion-{$this->record->id}.pdf", $pdf);
+
         // Enviar por correo si tiene correo válido
         if ($this->record->correo_electronico_cliente) {
             Mail::to($this->record->correo_electronico_cliente)
-                ->send(new CotizacionMail(
-                    $this->record->load(['items.producto', 'items.listaPrecio', 'usuario'])
-                ));
+                ->send(new CotizacionMail($this->record));
         }
 
-        // ✅ Ya no se envía WhatsApp aquí (eso se hace manualmente luego)
+        // ✅ WhatsApp no se envía automáticamente aquí
     }
 
     /**
