@@ -83,7 +83,7 @@ class WhatsAppService
                         'parameters' => [
                             [
                                 'type' => 'text',
-                                'text' => $clienteNombre,
+                                'text' => $cotizacion->nombre_cliente,
                             ],
                         ],
                     ],
