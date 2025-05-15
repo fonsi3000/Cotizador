@@ -17,6 +17,7 @@ class Cotizacion extends Model
         'numero_celular_cliente',
         'correo_electronico_cliente',
         'usuario_id',
+        'sala_venta_id',
         'fecha_cotizacion',
         'total_cotizacion',
     ];
@@ -29,5 +30,10 @@ class Cotizacion extends Model
     public function usuario()
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function salaVenta()
+    {
+        return $this->belongsTo(SalaVenta::class, 'sala_venta_id');
     }
 }

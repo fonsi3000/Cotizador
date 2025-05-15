@@ -3,9 +3,7 @@
 namespace App\Filament\Resources\CotizacionResource\Pages;
 
 use App\Filament\Resources\CotizacionResource;
-use App\Mail\Cotizacion as CotizacionMail;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Model;
 
 class CreateCotizacion extends CreateRecord
@@ -29,14 +27,6 @@ class CreateCotizacion extends CreateRecord
         $this->record->update([
             'total_cotizacion' => $this->record->items->sum('subtotal'),
         ]);
-
-        // Enviar por correo si tiene correo válido
-        if ($this->record->correo_electronico_cliente) {
-            Mail::to($this->record->correo_electronico_cliente)
-                ->send(new CotizacionMail(
-                    $this->record->load(['items.producto', 'items.listaPrecio', 'usuario'])
-                ));
-        }
     }
 
     /**

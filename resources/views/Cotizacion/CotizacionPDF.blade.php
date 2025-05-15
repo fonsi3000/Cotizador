@@ -81,12 +81,44 @@
 </head>
 <body>
     <div class="container">
+        @php
+            $empresa = $cotizacion->usuario->empresa ?? 'Espumas Medellin S.A';
+            $empresaNombre = $empresa === 'Espumados del Litoral S.A'
+                ? 'ESPUMADOS DEL LITORAL S.A'
+                : 'ESPUMAS MEDELLÍN S.A';
+
+            $empresaNit = $empresa === 'Espumados del Litoral S.A'
+                ? '800177119-1'
+                : '890921665-9';
+
+            $paginaWeb = $empresa === 'Espumados del Litoral S.A'
+                ? 'www.espumadosdellitoral.com.co'
+                : 'www.espumasmedellin.com';
+
+            $correoContacto = $empresa === 'Espumados del Litoral S.A'
+                ? 'lider.servicioalcliente@espumadosdellitoral.com.co'
+                : 'experienciacliente@espumasmedellin.com.co';
+
+            $direccionEmpresa = $empresa === 'Espumados del Litoral S.A'
+                ? 'Calle 110 # 9G-520 AV Circunvalar, Barranquilla'
+                : 'CR 48 98 SUR 05 LA ESTRELLA, ANTIOQUIA';
+
+            $direccionSala = $cotizacion->salaVenta->direccion ?? $direccionEmpresa;
+        @endphp
+
         <div class="header">
-            <img src="{{ public_path('images/logo.png') }}" alt="Espumas Medellín">
-            <div class="titulo">ESPUMAS MEDELLÍN S.A</div>
-            <div>N.I.T: 890921665-9</div>
-            <div>Dirección: CARRERA 48 98 SUR 05 LA ESTRELLA</div>
-            <div>Tel: 4441423 Ext:4021</div>
+            <img src="{{ public_path('images/logo.png') }}" alt="Logo">
+            <div class="titulo">{{ $empresaNombre }}</div>
+            <div>N.I.T: {{ $empresaNit }}</div>
+
+            @if ($cotizacion->salaVenta)
+                <div><strong>{{ strtoupper($cotizacion->salaVenta->nombre) }}</strong></div>
+                <div>{{ $cotizacion->salaVenta->direccion }}</div>
+                <div>Tel: {{ $cotizacion->salaVenta->telefono }}</div>
+            @else
+                <div>Dirección: {{ $direccionEmpresa }}</div>
+                <div>Tel: {{ $empresa === 'Espumados del Litoral S.A' ? 'N/A' : '4441423 Ext:4021' }}</div>
+            @endif
         </div>
 
         <div class="info">
@@ -138,15 +170,15 @@
         @endphp
 
         <div class="totales">
-            <p><strong>Subtotal: ${{ number_format($subtotal, 0, ',', '.') }}</p></strong>
-            <p><strong>IVA (19%): ${{ number_format($iva, 0, ',', '.') }}</p></strong>
-            <p><strong>TOTAL: ${{ number_format($total, 0, ',', '.') }}</p></strong>
+            <p><strong>Subtotal: ${{ number_format($subtotal, 0, ',', '.') }}</strong></p>
+            <p><strong>IVA (19%): ${{ number_format($iva, 0, ',', '.') }}</strong></p>
+            <p><strong>TOTAL: ${{ number_format($total, 0, ',', '.') }}</strong></p>
         </div>
 
         <div class="footer">
             <p><strong>DOCUMENTO NO VÁLIDO COMO RECIBO DE CAJA.</strong> Este no es un documento comercial. Exija el recibo de caja o factura original para efectos de reclamo.</p>
-            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 de protección de datos y con el Decreto 1377 de 2013, la información suministrada por usted para la realización de este documento será incorporada en una base de datos responsabilidad de ESPUMAS MEDELLÍN S.A, para su tratamiento y la transferencia de datos a terceros. Siendo tratados con la finalidad de: gestión de clientes, gestión administrativa, prospección comercial, fidelización de clientes, mercadeo, publicidad propia, el envío de comunicaciones comerciales sobre nuestros productos y campañas de actualización de datos e información de cambios en el tratamiento de datos personales. La política de tratamiento de datos se podrá consultar en la página www.espumasmedellin.com.</p>
-            <p>Usted puede ejercer su derecho de acceso, corrección, suspensión, revocación o reclamo por infracción sobre sus datos con un correo electrónico a <strong>experienciacliente@espumasmedellin.com.co</strong> o por medio físico enviado a la dirección <strong>CR 48 98 SUR 05 LA ESTRELLA, ANTIOQUIA</strong>.</p>
+            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 de protección de datos y con el Decreto 1377 de 2013, la información suministrada por usted para la realización de este documento será incorporada en una base de datos responsabilidad de {{ $empresaNombre }}, para su tratamiento y la transferencia de datos a terceros. Siendo tratados con la finalidad de: gestión de clientes, gestión administrativa, prospección comercial, fidelización de clientes, mercadeo, publicidad propia, el envío de comunicaciones comerciales sobre nuestros productos y campañas de actualización de datos e información de cambios en el tratamiento de datos personales. La política de tratamiento de datos se podrá consultar en la página {{ $paginaWeb }}.</p>
+            <p>Usted puede ejercer su derecho de acceso, corrección, suspensión, revocación o reclamo por infracción sobre sus datos con un correo electrónico a <strong>{{ $correoContacto }}</strong> o por medio físico enviado a la dirección <strong>{{ $direccionSala }}</strong>.</p>
         </div>
     </div>
 </body>

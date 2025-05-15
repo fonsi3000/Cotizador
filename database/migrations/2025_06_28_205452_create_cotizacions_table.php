@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('numero_celular_cliente');
             $table->string('correo_electronico_cliente')->nullable();
             $table->foreignId('usuario_id')->constrained('users');
+            $table->foreignId('sala_venta_id')->nullable()->constrained('sala_ventas')->nullOnDelete(); // 👈 Agregado
             $table->timestamp('fecha_cotizacion')->useCurrent();
             $table->decimal('total_cotizacion', 15, 2)->default(0);
             $table->timestamps();

@@ -21,11 +21,17 @@ class Cotizacion extends Mailable
 
     public function build()
     {
+        $empresa = $this->cotizacion->usuario->empresa ?? 'Espumas Medellín S.A';
+
+        $empresaNombreCorto = $empresa === 'Espumados del Litoral S.A'
+            ? 'Espumados del Litoral'
+            : 'Espumas Medellín';
+
         $pdf = Pdf::loadView('Cotizacion.CotizacionPDF', [
             'cotizacion' => $this->cotizacion,
         ])->output();
 
-        return $this->subject('Gracias por cotizar con Espumas Medellín')
+        return $this->subject("Gracias por cotizar con $empresaNombreCorto")
             ->view('mails.cotizacion')
             ->with(['cotizacion' => $this->cotizacion])
             ->attachData($pdf, "cotizacion-{$this->cotizacion->id}.pdf", [

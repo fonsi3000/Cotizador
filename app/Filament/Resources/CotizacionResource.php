@@ -2,17 +2,22 @@
 
 namespace App\Filament\Resources;
 
+
 use App\Filament\Resources\CotizacionResource\Pages;
 use App\Models\Cotizacion;
 use App\Models\Producto;
 use App\Models\ProductoPrecio;
 use App\Models\ListaPrecio;
+use App\Models\SalaVenta;
 use App\Services\WhatsAppService;
+use App\Mail\Cotizacion as CotizacionMail;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Mail;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Repeater;
@@ -59,9 +64,16 @@ class CotizacionResource extends Resource
                                     ->email()
                                     ->maxLength(255)
                                     ->nullable(),
+
                                 Hidden::make('usuario_id')
                                     ->default(fn() => auth()->id()),
                             ]),
+                        Select::make('sala_venta_id')
+                            ->label('Sala de Ventas')
+                            ->relationship('salaVenta', 'nombre')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
                     ])
                     ->columns(1)
                     ->collapsible(),
@@ -182,11 +194,11 @@ class CotizacionResource extends Resource
                 Tables\Columns\TextColumn::make('nombre_cliente')->label('Cliente')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('documento_cliente')->label('Documento')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('usuario.name')->label('Asesor')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('salaVenta.nombre')->label('Sala de Ventas')->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('total_cotizacion')->label('Total con IVA')->money('COP')->sortable()
                     ->getStateUsing(fn(Cotizacion $record) => $record->total_cotizacion * 1.19),
                 Tables\Columns\TextColumn::make('created_at')->label('Fecha')->dateTime('d/m/Y H:i')->sortable(),
             ])
-            ->filters([])
             ->actions([
                 Action::make('view')
                     ->label('Ver')
@@ -195,7 +207,7 @@ class CotizacionResource extends Resource
                     ->modalHeading(fn(Cotizacion $record): string => "Cotización: {$record->nombre_cliente}")
                     ->modalWidth('5xl')
                     ->modalContent(function (Cotizacion $record) {
-                        $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
+                        $record->load(['items.producto', 'items.listaPrecio', 'usuario', 'salaVenta']);
                         return view('Cotizacion.Cotizaciones', ['cotizacion' => $record]);
                     })
                     ->modalFooterActions([
@@ -205,26 +217,50 @@ class CotizacionResource extends Resource
                             ->color('gray')
                             ->action(function (Cotizacion $record) {
                                 return response()->streamDownload(function () use ($record) {
-                                    $record->load(['items.producto', 'items.listaPrecio', 'usuario']);
+                                    $record->load(['items.producto', 'items.listaPrecio', 'usuario', 'salaVenta']);
                                     echo Pdf::loadView('Cotizacion.CotizacionPDF', [
                                         'cotizacion' => $record,
                                         'isPdfDownload' => true,
                                     ])->output();
                                 }, "cotizacion-{$record->id}.pdf");
                             }),
+
                         Action::make('imprimir')
                             ->label('Imprimir')
                             ->icon('heroicon-o-printer')
                             ->color('success')
                             ->url(fn(Cotizacion $record) => route('cotizacion.tirilla', $record))
                             ->openUrlInNewTab(),
+
                         Action::make('enviar_whatsapp')
                             ->label('Enviar al WhatsApp')
                             ->icon('heroicon-o-chat-bubble-left-right')
                             ->color('success')
                             ->action(function (Cotizacion $record) {
                                 WhatsAppService::enviarCotizacion($record);
+                                Notification::make()
+                                    ->title('Cotización enviada por WhatsApp')
+                                    ->success()
+                                    ->send();
                             }),
+
+                        Action::make('enviar_correo')
+                            ->label('Enviar al Correo')
+                            ->icon('heroicon-o-envelope')
+                            ->color('primary')
+                            ->visible(fn(Cotizacion $record) => !empty($record->correo_electronico_cliente))
+                            ->action(function (Cotizacion $record) {
+                                Mail::to($record->correo_electronico_cliente)
+                                    ->send(new CotizacionMail(
+                                        $record->load(['items.producto', 'items.listaPrecio', 'usuario', 'salaVenta'])
+                                    ));
+
+                                Notification::make()
+                                    ->title("Cotización enviada al correo {$record->correo_electronico_cliente}")
+                                    ->success()
+                                    ->send();
+                            }),
+
                         Action::make('cerrar')
                             ->label('Cerrar')
                             ->color('secondary')
@@ -237,7 +273,7 @@ class CotizacionResource extends Resource
                 Tables\Actions\DeleteBulkAction::make(),
             ])
             ->emptyStateHeading('No hay cotizaciones registradas')
-            ->emptyStateDescription('Crea una nueva cotización haciendo clic en \"Crear\"')
+            ->emptyStateDescription('Crea una nueva cotización haciendo clic en "Crear"')
             ->emptyStateIcon('heroicon-o-clipboard-document-list')
             ->emptyStateActions([
                 CreateAction::make()
