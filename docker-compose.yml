@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  app:
+  cotizador_app:
     build:
       context: .
       dockerfile: .deploy/Dockerfile
@@ -13,16 +13,16 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - shared-public:/var/www/html/public   # ✅ volumen externo compartido
+      - cotizador-public:/var/www/html/public     # ✅ Volumen dedicado
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
-      - db
-      - redis
+      - cotizador_db
+      - cotizador_redis
     networks:
       - proxy_net
 
-  db:
+  cotizador_db:
     image: mysql:8.0
     container_name: cotizador_db
     ports:
@@ -38,13 +38,13 @@ services:
     networks:
       - proxy_net
 
-  redis:
+  cotizador_redis:
     image: redis:7-alpine
     container_name: cotizador_redis
     ports:
       - "${REDIS_EXTERNAL_PORT}:6379"
     networks:
-      - proxy_net  # ✅ red externa global
+      - proxy_net
 
 networks:
   proxy_net:
@@ -52,6 +52,6 @@ networks:
 
 volumes:
   cotizador_db_data:
-  shared-public:
+  cotizador-public:
     external: true
-    name: shared-public   # ✅ volumen externo global
+    name: cotizador-public
