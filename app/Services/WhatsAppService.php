@@ -8,19 +8,27 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Support\Stringable;
+use Illuminate\Support\Str as StrSupport;
 
 class WhatsAppService
 {
     public static function enviarCotizacion(Cotizacion $cotizacion): void
     {
+        Log::info("📤 Iniciando envío de WhatsApp para cotización ID {$cotizacion->id}");
+
         $telefono = preg_replace('/[^0-9]/', '', $cotizacion->numero_celular_cliente);
+        Log::info("📱 Teléfono procesado: {$telefono}");
+
         if (!$telefono || strlen($telefono) < 10) {
-            Log::warning("Número no válido para WhatsApp en cotización ID {$cotizacion->id}");
+            Log::warning("❌ Teléfono no válido para WhatsApp en cotización ID {$cotizacion->id}");
             return;
         }
 
         // Cargar relaciones necesarias
         $cotizacion->load(['items.producto', 'items.listaPrecio', 'usuario']);
+        $empresa = $cotizacion->usuario->empresa ?? 'NO DEFINIDA';
+        Log::info("🏢 Empresa del usuario: {$empresa}");
 
         // Crear archivo temporal directo desde la vista PDF
         $random = Str::random(20);
@@ -30,7 +38,7 @@ class WhatsAppService
         // Crear carpeta si no existe
         if (!File::exists(public_path("tmp-cotizaciones"))) {
             File::makeDirectory(public_path("tmp-cotizaciones"), 0755, true);
-            Log::info('Carpeta tmp-cotizaciones creada');
+            Log::info('📂 Carpeta tmp-cotizaciones creada');
         }
 
         // Generar PDF dinámicamente y guardarlo
@@ -41,9 +49,9 @@ class WhatsAppService
             ])->output();
 
             File::put($tempPath, $pdf);
-            Log::info("Archivo PDF generado y guardado temporalmente: {$tempPath}");
+            Log::info("🧾 Archivo PDF generado y guardado: {$tempPath}");
         } catch (\Throwable $e) {
-            Log::error("Error al generar PDF para cotización ID {$cotizacion->id}", [
+            Log::error("❌ Error al generar PDF para cotización ID {$cotizacion->id}", [
                 'exception' => $e->getMessage(),
             ]);
             return;
@@ -51,24 +59,27 @@ class WhatsAppService
 
         // Construir URL pública
         $publicUrl = config('services.whatsapp.public_url') . "/tmp-cotizaciones/{$tempFileName}";
-
-        // Obtener el nombre del cliente para la plantilla
         $clienteNombre = $cotizacion->nombre_cliente;
 
-        // Detectar la empresa del usuario y seleccionar configuración adecuada
-        $empresa = $cotizacion->usuario->empresa ?? 'Espumas Medellin S.A';
+        // Seleccionar configuración según empresa
+        $empresaStr = StrSupport::of($empresa)->lower();
 
-        if ($empresa === 'Espumados del Litoral S.A') {
+        if ($empresaStr->contains('litoral')) {
             $phoneId = config('services.whatsapp_litoral.phone_id');
             $token = config('services.whatsapp_litoral.token');
             $template = config('services.whatsapp_litoral.template');
+            Log::info("⚙️ Usando configuración de Litoral");
         } else {
             $phoneId = config('services.whatsapp.phone_id');
             $token = config('services.whatsapp.token');
             $template = config('services.whatsapp.template');
+            Log::info("⚙️ Usando configuración de Medellín");
         }
 
-        // Construir payload incluyendo el header (documento) y el body (nombre)
+        Log::info("📨 Template: {$template}");
+        Log::info("📞 Phone ID: {$phoneId}");
+
+        // Construir payload
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
@@ -106,28 +117,34 @@ class WhatsAppService
         $url = "https://graph.facebook.com/v22.0/{$phoneId}/messages";
 
         // Logs de depuración
-        Log::info('WhatsApp Phone ID:', [$phoneId]);
-        Log::info('WhatsApp URL:', [$url]);
-        Log::info('Payload WhatsApp:', $payload);
-        Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
+        Log::info('🌐 URL destino:', [$url]);
+        Log::info('📦 Payload:', $payload);
+        Log::info('🔐 Token parcial:', [substr($token, 0, 20) . '...']);
 
-        // Enviar solicitud a la API
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-            'Content-Type' => 'application/json',
-        ])->post($url, $payload);
+        // Enviar solicitud
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+            ])->post($url, $payload);
 
-        if ($response->failed()) {
-            Log::error('Error al enviar WhatsApp', [
-                'cotizacion_id' => $cotizacion->id,
-                'response' => $response->json(),
-                'url_pdf' => $publicUrl,
+            if ($response->failed()) {
+                Log::error('❌ Error al enviar WhatsApp', [
+                    'cotizacion_id' => $cotizacion->id,
+                    'response' => $response->json(),
+                    'url_pdf' => $publicUrl,
+                ]);
+            } else {
+                Log::info("✅ WhatsApp enviado correctamente a 57{$telefono}");
+                Log::info("📬 Respuesta:", [$response->body()]);
+            }
+        } catch (\Throwable $e) {
+            Log::error("❌ Excepción al enviar solicitud HTTP", [
+                'message' => $e->getMessage(),
             ]);
-        } else {
-            Log::info("WhatsApp enviado correctamente a 57{$telefono}");
         }
 
-        // Eliminar archivo después de 5 minutos
+        // Eliminar archivo temporal
         self::eliminarTemporal($tempPath, 300);
     }
 
@@ -137,7 +154,7 @@ class WhatsAppService
             sleep(300);
             if (file_exists($filePath)) {
                 unlink($filePath);
-                Log::info("Archivo temporal eliminado: {$filePath}");
+                Log::info("🗑️ Archivo temporal eliminado: {$filePath}");
             }
         })->delay(now()->addSeconds($delaySeconds));
     }
