@@ -55,16 +55,28 @@ class WhatsAppService
         // Obtener el nombre del cliente para la plantilla
         $clienteNombre = $cotizacion->nombre_cliente;
 
+        // Detectar la empresa del usuario y seleccionar configuración adecuada
+        $empresa = $cotizacion->usuario->empresa ?? 'Espumas Medellin S.A';
+
+        if ($empresa === 'Espumados del Litoral S.A') {
+            $phoneId = config('services.whatsapp_litoral.phone_id');
+            $token = config('services.whatsapp_litoral.token');
+            $template = config('services.whatsapp_litoral.template');
+        } else {
+            $phoneId = config('services.whatsapp.phone_id');
+            $token = config('services.whatsapp.token');
+            $template = config('services.whatsapp.template');
+        }
+
         // Construir payload incluyendo el header (documento) y el body (nombre)
         $payload = [
             'messaging_product' => 'whatsapp',
             'to' => '57' . $telefono,
             'type' => 'template',
             'template' => [
-                'name' => config('services.whatsapp.template'),
+                'name' => $template,
                 'language' => ['code' => 'es_CO'],
                 'components' => [
-                    // 1) Encabezado: el documento PDF
                     [
                         'type' => 'header',
                         'parameters' => [
@@ -77,13 +89,12 @@ class WhatsAppService
                             ],
                         ],
                     ],
-                    // 2) Cuerpo: variable nombrada {{name}}, se requiere 'parameter_name'
                     [
                         'type' => 'body',
                         'parameters' => [
                             [
                                 'type' => 'text',
-                                'text' => $cotizacion->nombre_cliente,
+                                'text' => $clienteNombre,
                                 'parameter_name' => 'name',
                             ],
                         ],
@@ -92,12 +103,10 @@ class WhatsAppService
             ],
         ];
 
-
-        $url = "https://graph.facebook.com/v22.0/" . config('services.whatsapp.phone_id') . "/messages";
-        $token = config('services.whatsapp.token');
+        $url = "https://graph.facebook.com/v22.0/{$phoneId}/messages";
 
         // Logs de depuración
-        Log::info('WhatsApp Phone ID:', [config('services.whatsapp.phone_id')]);
+        Log::info('WhatsApp Phone ID:', [$phoneId]);
         Log::info('WhatsApp URL:', [$url]);
         Log::info('Payload WhatsApp:', $payload);
         Log::info('Token parcial:', [substr($token, 0, 20) . '...']);
