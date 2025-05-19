@@ -23,19 +23,17 @@ return [
         ],
     ],
 
-    // ✅ WhatsApp Cloud - Espumas Medellin
     'whatsapp' => [
         'phone_id' => env('WHATSAPP_PHONE_ID'),
         'token' => env('WHATSAPP_TOKEN'),
         'template' => env('WHATSAPP_TEMPLATE_NAME', 'cotizacion'),
         'public_url' => env('WHATSAPP_PUBLIC_BASE_URL', 'https://cotizador.espumasmedellin.com'),
-        'version' => env('WHATSAPP_API_VERSION', ''),
+        'version' => env('WHATSAPP_API_VERSION', 'v22.2'),
     ],
 
-    // ✅ WhatsApp Cloud - Espumados del Litoral
     'whatsapp_litoral' => [
         'phone_id' => env('WHATSAPP_PHONE_ID_LITORAL'),
-        'token' => env('WHATSAPP_TOKEN_LITORAL'),
+        'token' => env('WHATSAPP_TOKEN'), // 👉 mismo token
         'template' => env('WHATSAPP_TEMPLATE_LITORAL', 'cotizacionx'),
         'public_url' => env('WHATSAPP_PUBLIC_BASE_URL', 'https://cotizador.espumasmedellin.com'),
         'version' => env('WHATSAPP_API_VERSION', 'v22.2'),
