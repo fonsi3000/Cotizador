@@ -30,6 +30,7 @@ use Filament\Tables\Actions\Action;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class CotizacionResource extends Resource
 {
@@ -290,6 +291,7 @@ class CotizacionResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
+                ExportBulkAction::make(),
             ])
             ->emptyStateHeading('No hay cotizaciones registradas')
             ->emptyStateDescription('Crea una nueva cotización haciendo clic en "Crear"')
