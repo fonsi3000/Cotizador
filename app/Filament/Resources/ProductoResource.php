@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductoResource\Pages;
-use App\Filament\Resources\ProductoResource\RelationManagers;
 use App\Models\Producto;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,21 +10,16 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-
-
 
 class ProductoResource extends Resource
 {
     protected static ?string $model = Producto::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
-
     protected static ?string $modelLabel = 'Producto';
-
     protected static ?string $pluralModelLabel = 'Productos';
-
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -60,7 +54,7 @@ class ProductoResource extends Resource
                                 Forms\Components\FileUpload::make('imagen')
                                     ->image()
                                     ->directory('productos')
-                                    ->maxSize(5120) // 5MB
+                                    ->maxSize(5120)
                                     ->label('Imagen del producto')
                                     ->helperText('Suba una imagen del producto (máx. 5MB)')
                                     ->columnSpan(1),
@@ -110,6 +104,11 @@ class ProductoResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger'),
 
+                Tables\Columns\TextColumn::make('empresa')
+                    ->label('Empresa')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
@@ -140,11 +139,18 @@ class ProductoResource extends Resource
             ->defaultSort('codigo', 'asc');
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $user = Auth::user();
+
+        return $user->hasRole('super_admin')
+            ? parent::getEloquentQuery()
+            : parent::getEloquentQuery()->where('empresa', $user->empresa);
+    }
+
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -155,6 +161,7 @@ class ProductoResource extends Resource
             'edit' => Pages\EditProducto::route('/{record}/edit'),
         ];
     }
+
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

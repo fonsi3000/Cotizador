@@ -1,5 +1,5 @@
 <?php
-// Migración para la tabla productos
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('descripcion');
             $table->string('imagen')->nullable();
             $table->boolean('activo')->default(true);
+            $table->enum('empresa', ['Espumas Medellin S.A', 'Espumados del Litoral S.A'])->nullable(); // Nuevo campo
             $table->timestamps();
         });
     }

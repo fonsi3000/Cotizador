@@ -28,6 +28,8 @@ use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\Action;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
 
 class CotizacionResource extends Resource
 {
@@ -70,7 +72,12 @@ class CotizacionResource extends Resource
                             ]),
                         Select::make('sala_venta_id')
                             ->label('Sala de Ventas')
-                            ->relationship('salaVenta', 'nombre')
+                            ->options(function () {
+                                $user = auth()->user();
+                                return \App\Models\SalaVenta::query()
+                                    ->when(!$user->hasRole('super_admin'), fn($q) => $q->where('empresa', $user->empresa))
+                                    ->pluck('nombre', 'id');
+                            })
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -85,13 +92,16 @@ class CotizacionResource extends Resource
                             ->schema([
                                 Select::make('producto_id')
                                     ->label('Producto')
-                                    ->options(
-                                        Producto::select('id', 'codigo', 'descripcion')
+                                    ->options(function () {
+                                        $user = auth()->user();
+                                        return Producto::select('id', 'codigo', 'descripcion')
+                                            ->when(!$user->hasRole('super_admin'), fn($q) => $q->where('empresa', $user->empresa))
                                             ->get()
                                             ->mapWithKeys(fn($producto) => [
                                                 $producto->id => "{$producto->codigo} - {$producto->descripcion}",
-                                            ])
-                                    )
+                                            ]);
+                                    })
+
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -109,14 +119,19 @@ class CotizacionResource extends Resource
                                         $productoId = $get('producto_id');
                                         if (!$productoId) return [];
 
-                                        $producto = Producto::find($productoId);
+                                        $producto = \App\Models\Producto::find($productoId);
                                         if (!$producto) return [];
 
-                                        $listasPrecioIds = ProductoPrecio::where('codigo_producto', $producto->codigo)
+                                        // Obtener las listas de precio asociadas a ese producto
+                                        $listasPrecioIds = \App\Models\ProductoPrecio::where('codigo_producto', $producto->codigo)
                                             ->pluck('lista_precio_id')
                                             ->toArray();
 
-                                        return ListaPrecio::whereIn('id', $listasPrecioIds)
+                                        $user = auth()->user();
+
+                                        // Filtrar listas por empresa si no es super_admin
+                                        return \App\Models\ListaPrecio::whereIn('id', $listasPrecioIds)
+                                            ->when(!$user->hasRole('super_admin'), fn($q) => $q->where('empresa', $user->empresa))
                                             ->pluck('nombre', 'id')
                                             ->toArray();
                                     })
@@ -133,14 +148,14 @@ class CotizacionResource extends Resource
                                             return;
                                         }
 
-                                        $producto = Producto::find($productoId);
+                                        $producto = \App\Models\Producto::find($productoId);
                                         if (!$producto) {
                                             $set('precio_unitario', null);
                                             $set('subtotal', null);
                                             return;
                                         }
 
-                                        $precio = ProductoPrecio::where('codigo_producto', $producto->codigo)
+                                        $precio = \App\Models\ProductoPrecio::where('codigo_producto', $producto->codigo)
                                             ->where('lista_precio_id', $state)
                                             ->value('precio');
 
@@ -148,8 +163,12 @@ class CotizacionResource extends Resource
                                             $set('precio_unitario', $precio);
                                             $cantidad = $get('cantidad') ?? 1;
                                             $set('subtotal', floatval($precio) * floatval($cantidad));
+                                        } else {
+                                            $set('precio_unitario', null);
+                                            $set('subtotal', null);
                                         }
                                     }),
+
 
                                 TextInput::make('precio_unitario')
                                     ->label('Precio Unitario')
@@ -287,6 +306,20 @@ class CotizacionResource extends Resource
     public static function getRelations(): array
     {
         return [];
+    }
+    public static function getEloquentQuery(): Builder
+    {
+        $user = Auth::user();
+
+        return parent::getEloquentQuery()
+            ->when(!$user->hasRole('super_admin'), function (Builder $query) use ($user) {
+                $query->whereHas('salaVenta', function (Builder $q) use ($user) {
+                    $q->where('empresa', $user->empresa);
+                });
+            })
+            ->when($user->hasRole('asesor'), function (Builder $query) use ($user) {
+                $query->where('usuario_id', $user->id);
+            });
     }
 
     public static function getPages(): array

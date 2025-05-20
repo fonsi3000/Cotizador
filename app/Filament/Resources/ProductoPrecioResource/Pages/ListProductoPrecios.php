@@ -9,7 +9,6 @@ use EightyNine\ExcelImport\ExcelImportAction;
 use App\Models\Producto;
 use App\Models\ListaPrecio;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use Filament\Notifications\Notification;
 use App\Imports\ProductoPrecioImport;
 
@@ -19,17 +18,21 @@ class ListProductoPrecios extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        // Obtener todos los productos activos
+        $user = auth()->user();
+
+        // Filtrar productos por empresa
         $productos = Producto::where('activo', true)
+            ->when(!$user->hasRole('super_admin'), fn($q) => $q->where('empresa', $user->empresa))
             ->select('codigo', 'descripcion')
             ->get();
 
-        // Obtener todas las listas de precios activas
+        // Filtrar listas de precios por empresa
         $listasPrecios = ListaPrecio::where('activo', true)
+            ->when(!$user->hasRole('super_admin'), fn($q) => $q->where('empresa', $user->empresa))
             ->select('id', 'nombre')
             ->get();
 
-        // Crear la plantilla de muestra para descargar
+        // Crear la plantilla de muestra
         $sampleData = [];
 
         foreach ($productos as $producto) {

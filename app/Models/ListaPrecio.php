@@ -5,35 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Auth;
 
 class ListaPrecio extends Model
 {
     use HasFactory;
 
-    /**
-     * La tabla asociada con el modelo.
-     *
-     * @var string
-     */
     protected $table = 'listas_precios';
 
-    /**
-     * Los atributos que son asignables masivamente.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'nombre',
         'fecha_inicio',
         'fecha_fin',
         'activo',
+        'empresa', // 👈 Asegúrate de incluir este campo en fillable
     ];
 
-    /**
-     * Los atributos que deben ser convertidos.
-     *
-     * @var array
-     */
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
@@ -57,9 +44,6 @@ class ListaPrecio extends Model
 
     /**
      * Scope para filtrar listas de precios activas.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActivas($query)
     {
@@ -68,9 +52,6 @@ class ListaPrecio extends Model
 
     /**
      * Scope para filtrar listas de precios vigentes.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeVigentes($query)
     {
@@ -85,8 +66,6 @@ class ListaPrecio extends Model
 
     /**
      * Verifica si la lista de precios está vigente.
-     *
-     * @return bool
      */
     public function estaVigente()
     {
@@ -94,5 +73,17 @@ class ListaPrecio extends Model
 
         return $this->fecha_inicio <= $hoy &&
             ($this->fecha_fin === null || $this->fecha_fin >= $hoy);
+    }
+
+    /**
+     * Booted: asigna automáticamente la empresa del usuario autenticado.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (ListaPrecio $listaPrecio) {
+            if (Auth::check() && empty($listaPrecio->empresa)) {
+                $listaPrecio->empresa = Auth::user()->empresa;
+            }
+        });
     }
 }

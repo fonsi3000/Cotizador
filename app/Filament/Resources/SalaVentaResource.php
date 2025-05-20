@@ -10,13 +10,13 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class SalaVentaResource extends Resource
 {
     protected static ?string $model = SalaVenta::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
-
     protected static ?string $navigationLabel = 'Salas de Ventas';
     protected static ?string $pluralLabel = 'Salas de Ventas';
     protected static ?string $modelLabel = 'Sala de Ventas';
@@ -100,6 +100,20 @@ class SalaVentaResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = Auth::user();
+
+        // Mostrar todo si es super_admin
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery();
+        }
+
+        // Filtrar por empresa del usuario autenticado
+        return parent::getEloquentQuery()
+            ->where('empresa', $user->empresa);
     }
 
     public static function getRelations(): array

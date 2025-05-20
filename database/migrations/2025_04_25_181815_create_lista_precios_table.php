@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('fecha_inicio');
             $table->date('fecha_fin')->nullable();
             $table->boolean('activo')->default(true);
+            $table->enum('empresa', ['Espumas Medellin S.A', 'Espumados del Litoral S.A'])->nullable();
             $table->timestamps();
         });
     }
