@@ -15,7 +15,7 @@ class ProductoPrecio extends Model
      *
      * @var string
      */
-    protected $table = 'producto_precio';
+    protected $table = 'producto_precios';
 
     /**
      * Los atributos que son asignables masivamente.

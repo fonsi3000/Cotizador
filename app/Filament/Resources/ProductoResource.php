@@ -32,7 +32,7 @@ class ProductoResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('codigo')
                                     ->required()
-                                    ->unique(ignoreRecord: true)
+                                    // ->unique(ignoreRecord: true)
                                     ->maxLength(255)
                                     ->label('Código')
                                     ->placeholder('Ingrese el código único del producto'),

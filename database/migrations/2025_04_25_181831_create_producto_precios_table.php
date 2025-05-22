@@ -6,34 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('producto_precio', function (Blueprint $table) {
+        Schema::create('producto_precios', function (Blueprint $table) {
             $table->id();
+
             $table->string('codigo_producto');
+
             $table->foreignId('lista_precio_id')->constrained('listas_precios')->onDelete('cascade');
+
             $table->decimal('precio', 15, 2);
             $table->timestamps();
 
-            // Restricción única para evitar duplicados
-            $table->unique(['codigo_producto', 'lista_precio_id']);
-
-            // Clave foránea al campo codigo de la tabla productos
-            $table->foreign('codigo_producto')
-                ->references('codigo')
-                ->on('productos')
-                ->onDelete('cascade');
+            $table->unique(['codigo_producto', 'lista_precio_id'], 'codigo_producto_lista_precio_unique');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('producto_precio');
+        Schema::dropIfExists('producto_precios');
     }
 };
