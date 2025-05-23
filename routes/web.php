@@ -19,8 +19,8 @@ Route::get('/cotizacion/tirilla/{cotizacion}', function (Cotizacion $cotizacion)
 // Registro público de referidos
 // ============================
 
-// Paso 1: Ingresar correo del referidor
-
+// Paso 1: Ingresar correo del referidor (GET y POST)
+Route::get('/referir', [ReferidoPublicController::class, 'showEmailForm'])->name('referido.public.email-form');
 Route::post('/referir', [ReferidoPublicController::class, 'sendReferidorCode'])->name('referido.public.send-code');
 
 // Paso 2: Validar el código que le llega al referidor

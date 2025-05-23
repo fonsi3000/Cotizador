@@ -39,8 +39,6 @@ class ReferidoPublicController extends Controller
                     'cecaribeplaza@espumadosdellitoral.com.co',
                     'Centrodeexperienciaalegra@espumadosdellitoral.com.co',
                     'centrodeexperiencias@espumadosdellitoral.com.co',
-
-                    // Nuevos correos de Espumas Medellín
                     'sala.santafe@espumasmedellin.com.co',
                     'sala.losmolinos@espumasmedellin.com.co',
                     'sala.florida@espumasmedellin.com.co',
@@ -55,7 +53,6 @@ class ReferidoPublicController extends Controller
                     'sala.laestrella@espumasmedellin.com.co',
                 ];
 
-
                 if (!Str::endsWith($value, $dominiosPermitidos)) {
                     $fail('El correo debe ser corporativo.');
                 }
@@ -66,16 +63,29 @@ class ReferidoPublicController extends Controller
             }],
         ]);
 
+        $correo = $validated['correo_referidor'];
+
+        // Verifica si ya existe un registro pendiente
+        $referidoExistente = Referido::where('correo_referidor', $correo)
+            ->where('estado', 'pendiente')
+            ->where('referidor_validado', false)
+            ->first();
+
+        if ($referidoExistente) {
+            return redirect()->route('referido.validar-codigo', ['id' => $referidoExistente->id])
+                ->with('mensaje', 'Ya se envió un código a este correo. Por favor verifica tu correo y completa la validación.');
+        }
+
         $codigo = random_int(100000, 999999);
 
         $referido = Referido::create([
-            'correo_referidor' => $validated['correo_referidor'],
+            'correo_referidor' => $correo,
             'codigo_referidor' => $codigo,
             'estado' => 'pendiente',
             'vigencia' => Carbon::now()->addMonth(),
         ]);
 
-        Mail::to($referido->correo_referidor)->send(new CodigoReferidorMail($codigo));
+        Mail::to($correo)->send(new CodigoReferidorMail($codigo));
 
         return redirect()->route('referido.validar-codigo', ['id' => $referido->id]);
     }
