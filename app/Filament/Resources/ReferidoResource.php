@@ -82,7 +82,7 @@ class ReferidoResource extends Resource
                     ->action(fn() => null) // No hace nada
                     ->modalContent(function ($record) {
                         $record->load(['salaVenta', 'modificadoPor']);
-                        return view('Referido.Show', ['referido' => $record]);
+                        return view('referido.show', ['referido' => $record]);
                     }),
 
                 Tables\Actions\EditAction::make(),
