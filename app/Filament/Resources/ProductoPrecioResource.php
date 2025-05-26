@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProductoPrecioResource extends Resource
@@ -34,6 +35,7 @@ class ProductoPrecioResource extends Resource
                             ->label('Producto')
                             ->options(
                                 Producto::where('activo', true)
+                                    ->where('empresa', Auth::user()->empresa)
                                     ->get()
                                     ->mapWithKeys(fn($producto) => [
                                         $producto->codigo => "{$producto->codigo} - {$producto->descripcion}"
@@ -62,6 +64,10 @@ class ProductoPrecioResource extends Resource
                             ->minValue(0)
                             ->placeholder('0.00')
                             ->helperText('Ingrese el precio sin separadores de miles'),
+
+                        Forms\Components\Hidden::make('empresa')
+                            ->default(fn() => Auth::user()->empresa)
+                            ->dehydrated(), // se envía en el form aunque esté oculto
                     ])
                     ->columns(1),
             ]);
@@ -91,6 +97,11 @@ class ProductoPrecioResource extends Resource
                     ->label('Precio')
                     ->money('COP')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('empresa')
+                    ->label('Empresa')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Fecha de Creación')
@@ -160,9 +171,7 @@ class ProductoPrecioResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -176,12 +185,15 @@ class ProductoPrecioResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->with(['producto', 'listaPrecio']);
+        $user = Auth::user();
+
+        return $user->hasRole('super_admin')
+            ? parent::getEloquentQuery()
+            : parent::getEloquentQuery()->where('empresa', $user->empresa);
     }
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        return static::getModel()::where('empresa', Auth::user()->empresa)->count();
     }
 }
