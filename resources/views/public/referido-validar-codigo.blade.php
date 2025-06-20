@@ -119,7 +119,7 @@
         </form>
 
         <div class="footer-logos">
-            <img src="{{ asset('images/logo.png') }}" alt="Logos corporativos">
+            <img src="{{ asset('images/logos.png') }}" alt="Logos corporativos">
         </div>
     </div>
 </body>
