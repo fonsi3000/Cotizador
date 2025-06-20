@@ -27,7 +27,7 @@ class ReferidoPublicController extends Controller
     {
         $validated = $request->validate([
             'correo_referidor' => ['required', 'email', function ($attribute, $value, $fail) {
-                $dominiosPermitidos = ['@espumasmedellin.com.co', '@espumadosdellitoral.com.co'];
+                $dominiosPermitidos = ['@espumasmedellin.com.co', '@espumadosdellitoral.com.co', '@stn.com.co'];
                 $correosProhibidos = [
                     'Saladeventasguatapuri@espumadosdellitoral.com.co',
                     'lider.saladeventas@espumadosdellitoral.com.co',
@@ -63,10 +63,10 @@ class ReferidoPublicController extends Controller
             }],
         ]);
 
-        $correo = $validated['correo_referidor'];
+        $correoReferidor = $validated['correo_referidor'];
 
         // Verifica si ya existe un registro pendiente
-        $referidoExistente = Referido::where('correo_referidor', $correo)
+        $referidoExistente = Referido::where('correo_referidor', $correoReferidor)
             ->where('estado', 'pendiente')
             ->where('referidor_validado', false)
             ->first();
@@ -79,13 +79,19 @@ class ReferidoPublicController extends Controller
         $codigo = random_int(100000, 999999);
 
         $referido = Referido::create([
-            'correo_referidor' => $correo,
+            'correo_referidor' => $correoReferidor,
             'codigo_referidor' => $codigo,
             'estado' => 'pendiente',
             'vigencia' => Carbon::now()->addMonth(),
         ]);
 
-        Mail::to($correo)->send(new CodigoReferidorMail($codigo));
+        try {
+            Mail::to($correoReferidor)->send(new CodigoReferidorMail($codigo));
+            \Log::info("✅ Código enviado correctamente a {$correoReferidor}");
+        } catch (\Exception $e) {
+            \Log::error("❌ Error al enviar correo al referidor: " . $e->getMessage());
+        }
+
 
         return redirect()->route('referido.validar-codigo', ['id' => $referido->id]);
     }
@@ -136,12 +142,19 @@ class ReferidoPublicController extends Controller
 
         $codigo = random_int(100000, 999999);
 
-        $referido->update(array_merge($validated, [
+        // Evitar sobrescribir correo_referidor
+        $referido->update([
+            'nombre_referidor' => $validated['nombre_referidor'],
+            'documento_referidor' => $validated['documento_referidor'],
+            'nombre_referido' => $validated['nombre_referido'],
+            'documento_referido' => $validated['documento_referido'],
+            'correo_referido' => $validated['correo_referido'],
             'codigo_referido' => $codigo,
             'referido_validado' => false,
             'estado' => 'activo',
-        ]));
+        ]);
 
+        \Log::info('Enviando código al referido: ' . $referido->correo_referido);
         Mail::to($referido->correo_referido)->send(new CodigoReferidoMail($codigo));
 
         return redirect()->route('referido.public.success');
