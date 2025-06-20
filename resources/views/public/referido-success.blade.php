@@ -92,7 +92,7 @@
         <a href="{{ route('referido.public.email-form') }}" class="action-button">Referir otra persona</a>
 
         <div class="footer-logos">
-            <img src="{{ asset('images/logos.png') }}" alt="Logo corporativo">
+            <img src="{{ asset('images/logoss.png') }}" alt="Logo corporativo">
         </div>
     </div>
 </body>
