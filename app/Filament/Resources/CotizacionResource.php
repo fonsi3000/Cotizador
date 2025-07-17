@@ -31,6 +31,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
 
 class CotizacionResource extends Resource
 {
@@ -169,8 +171,6 @@ class CotizacionResource extends Resource
                                             $set('subtotal', null);
                                         }
                                     }),
-
-
                                 TextInput::make('precio_unitario')
                                     ->label('Precio Unitario')
                                     ->prefix('$')
@@ -218,6 +218,32 @@ class CotizacionResource extends Resource
                 Tables\Columns\TextColumn::make('total_cotizacion')->label('Total con IVA')->money('COP')->sortable()
                     ->getStateUsing(fn(Cotizacion $record) => $record->total_cotizacion * 1.19),
                 Tables\Columns\TextColumn::make('created_at')->label('Fecha')->dateTime('d/m/Y H:i')->sortable(),
+            ])
+            ->filters([
+                Filter::make('created_at')
+                    ->label('Fecha de creación')
+                    ->form([
+                        DatePicker::make('from')->label('Desde'),
+                        DatePicker::make('until')->label('Hasta'),
+                    ])
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['from'] ?? false) {
+                            $indicators[] = 'Desde ' . \Carbon\Carbon::parse($data['from'])->format('d/m/Y');
+                        }
+
+                        if ($data['until'] ?? false) {
+                            $indicators[] = 'Hasta ' . \Carbon\Carbon::parse($data['until'])->format('d/m/Y');
+                        }
+
+                        return $indicators;
+                    })
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['from'], fn($q) => $q->whereDate('created_at', '>=', $data['from']))
+                            ->when($data['until'], fn($q) => $q->whereDate('created_at', '<=', $data['until']));
+                    }),
             ])
             ->actions([
                 Action::make('view')
