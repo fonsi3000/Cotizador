@@ -16,5 +16,7 @@ class SalaVenta extends Model
         'telefono',
         'direccion',
         'empresa',
+        'codigo_sap',
+
     ];
 }

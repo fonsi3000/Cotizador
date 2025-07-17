@@ -51,6 +51,11 @@ class SalaVentaResource extends Resource
                     ->nullable()
                     ->searchable()
                     ->preload(),
+
+                Forms\Components\TextInput::make('codigo_sap')
+                    ->label('Codigo SAP de la tienda')
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 
@@ -75,6 +80,11 @@ class SalaVentaResource extends Resource
 
                 Tables\Columns\TextColumn::make('empresa')
                     ->label('Empresa')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('codigo_sap')
+                    ->label('Codigo SAP')
+                    ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')

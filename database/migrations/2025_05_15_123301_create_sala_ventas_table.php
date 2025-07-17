@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->string('telefono');
             $table->string('direccion');
             $table->enum('empresa', ['Espumas Medellin S.A', 'Espumados del Litoral S.A'])->nullable();
+            $table->integer('codigo_sap');
             $table->timestamps();
         });
     }

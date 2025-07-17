@@ -13,7 +13,7 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - cotizador-public:/var/www/html/public     # ✅ Volumen dedicado
+      - cotizador-public:/var/www/html/public     # Volumen dedicado
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
