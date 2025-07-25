@@ -170,8 +170,14 @@
         </div>
 
         <div class="qr">
-            <img src="{{ asset('images/qr-medellin.png') }}" alt="QR Espumas Medellín" width="100">
+            @php
+                $qrImage = $empresa === 'Espumados del Litoral S.A'
+                    ? asset('images/qr-litoral.png')
+                    : asset('images/qr-medellin.png');
+            @endphp
+            <img src="{{ $qrImage }}" alt="QR Empresa" width="100">
         </div>
+
 
         <div style="height: 20px;"></div>
     </div>
