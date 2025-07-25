@@ -29,6 +29,7 @@
         .subtitulo {
             font-weight: bold;
             margin-bottom: 2px;
+            text-align: center;
         }
 
         .linea {
@@ -43,7 +44,12 @@
         }
 
         .productos .item {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .productos .item p {
+            font-size: 11px;
+            line-height: 1.2;
         }
 
         .totales {
@@ -82,6 +88,7 @@
     <div class="tirilla">
         <div class="center">
             <img src="{{ asset('images/logo.png') }}" class="logo" alt="Logo">
+
             @php
                 $empresa = $cotizacion->usuario->empresa ?? 'Espumas Medellin S.A';
                 $empresaNombre = $empresa === 'Espumados del Litoral S.A'
@@ -105,7 +112,11 @@
                     : 'CR 48 98 SUR 05 LA ESTRELLA, ANTIOQUIA';
 
                 $direccionSala = $cotizacion->salaVenta->direccion ?? $direccionEmpresa;
+                $qrImage = $empresa === 'Espumados del Litoral S.A'
+                    ? asset('images/qr-litoral.png')
+                    : asset('images/qr-medellin.png');
             @endphp
+
             <div class="titulo">{{ $empresaNombre }}</div>
             <div>N.I.T: {{ $empresaNit }}</div>
 
@@ -139,9 +150,16 @@
         <div class="productos">
             <div class="subtitulo">PRODUCTOS</div>
             @foreach ($cotizacion->items as $item)
+                @php
+                    $ivaPorUnidad = round($item->precio_unitario * 0.19, 2);
+                    $precioConIva = $item->precio_unitario + $ivaPorUnidad;
+                    $subtotalConIva = $precioConIva * $item->cantidad;
+                @endphp
                 <div class="item">
-                    <p>{{ $item->producto->descripcion ?? 'Producto' }}</p>
-                    <p>${{ number_format($item->precio_unitario, 0, ',', '.') }} x {{ $item->cantidad }} = ${{ number_format($item->subtotal, 0, ',', '.') }}</p>
+                    <p><strong>{{ $item->producto->descripcion ?? 'Producto' }}</strong></p>
+                    <p>Valor unitario: ${{ number_format($item->precio_unitario, 0, ',', '.') }}</p>
+                    <p>IVA (19%): ${{ number_format($ivaPorUnidad, 0, ',', '.') }}</p>
+                    <p>Total x {{ $item->cantidad }}: ${{ number_format($subtotalConIva, 0, ',', '.') }}</p>
                 </div>
             @endforeach
         </div>
@@ -149,7 +167,7 @@
         <div class="linea"></div>
 
         @php
-            $subtotal = $cotizacion->items->sum('subtotal');
+            $subtotal = $cotizacion->items->sum(fn($item) => $item->precio_unitario * $item->cantidad);
             $iva = round($subtotal * 0.19, 2);
             $total = $subtotal + $iva;
         @endphp
@@ -164,20 +182,14 @@
 
         <div class="footer">
             <p class="text-center"><strong>DOCUMENTO NO VÁLIDO COMO RECIBO DE CAJA, ESTE NO ES UN DOCUMENTO COMERCIAL. EXIJA EL RECIBO DE CAJA O FACTURA ORIGINAL PARA EFECTOS DE RECLAMO.</strong></p>
-            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 de protección de datos y con el Decreto 1377 de 2013, la información suministrada por usted para la realización de este documento será incorporada en una base de datos responsabilidad de {{ $empresaNombre }}, para su tratamiento y la transferencia de datos a terceros. Siendo tratados con la finalidad de: gestión de clientes, gestión administrativa, prospección comercial, fidelización de clientes, mercadeo, publicidad propia, el envío de comunicaciones comerciales sobre nuestros productos y campañas de actualización de datos e información de cambios en el tratamiento de datos personales. La política de tratamiento de datos se podrá consultar en la página {{ $paginaWeb }}.</p>
-            <p>Usted puede ejercer su derecho de acceso, corrección, suspensión, revocación o reclamo por infracción sobre sus datos con un correo electrónico a <strong>{{ $correoContacto }}</strong> o por medio físico enviado a la dirección <strong>{{ $direccionSala }}</strong>.</p>
-            <p class="text-center">Para más información visite nuestra página web: <strong>{{ $paginaWeb }}</strong></p>
+            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 y el Decreto 1377 de 2013, la información suministrada para este documento será incorporada en una base de datos responsabilidad de {{ $empresaNombre }} y tratada para fines comerciales, administrativos, de fidelización y actualización. La política de tratamiento de datos se encuentra en {{ $paginaWeb }}.</p>
+            <p>Usted puede ejercer sus derechos escribiendo a <strong>{{ $correoContacto }}</strong> o a la dirección <strong>{{ $direccionSala }}</strong>.</p>
+            <p class="text-center">Para más información visite: <strong>{{ $paginaWeb }}</strong></p>
         </div>
 
         <div class="qr">
-            @php
-                $qrImage = $empresa === 'Espumados del Litoral S.A'
-                    ? asset('images/qr-litoral.png')
-                    : asset('images/qr-medellin.png');
-            @endphp
             <img src="{{ $qrImage }}" alt="QR Empresa" width="100">
         </div>
-
 
         <div style="height: 20px;"></div>
     </div>

@@ -56,10 +56,6 @@
             text-align: left;
         }
 
-        .productos img {
-            height: 50px;
-        }
-
         .productos th {
             background-color: #f0f0f0;
         }
@@ -70,12 +66,13 @@
 
         .totales p strong {
             display: inline-block;
-            width: 120px;
+            width: 140px;
         }
 
         .footer {
             font-size: 10px;
             color: #555;
+            text-align: justify;
         }
     </style>
 </head>
@@ -144,19 +141,28 @@
                         <th>Código</th>
                         <th>Descripción</th>
                         <th>Precio Unitario</th>
+                        <th>IVA (19%)</th>
+                        <th>Total x Unidad</th>
                         <th>Cantidad</th>
-                        <th>Subtotal</th>
+                        <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($cotizacion->items as $index => $item)
+                        @php
+                            $ivaUnidad = round($item->precio_unitario * 0.19, 2);
+                            $totalUnidad = $item->precio_unitario + $ivaUnidad;
+                            $totalProducto = $totalUnidad * $item->cantidad;
+                        @endphp
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $item->producto->codigo ?? 'N/A' }}</td>
                             <td>{{ $item->producto->descripcion ?? 'N/A' }}</td>
                             <td>${{ number_format($item->precio_unitario, 0, ',', '.') }}</td>
+                            <td>${{ number_format($ivaUnidad, 0, ',', '.') }}</td>
+                            <td>${{ number_format($totalUnidad, 0, ',', '.') }}</td>
                             <td>{{ $item->cantidad }}</td>
-                            <td>${{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                            <td>${{ number_format($totalProducto, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -164,21 +170,21 @@
         </div>
 
         @php
-            $subtotal = $cotizacion->items->sum('subtotal');
+            $subtotal = $cotizacion->items->sum(fn($item) => $item->precio_unitario * $item->cantidad);
             $iva = round($subtotal * 0.19, 2);
             $total = $subtotal + $iva;
         @endphp
 
         <div class="totales">
-            <p><strong>Subtotal: ${{ number_format($subtotal, 0, ',', '.') }}</strong></p>
-            <p><strong>IVA (19%): ${{ number_format($iva, 0, ',', '.') }}</strong></p>
-            <p><strong>TOTAL: ${{ number_format($total, 0, ',', '.') }}</strong></p>
+            <p><strong>Subtotal:</strong> ${{ number_format($subtotal, 0, ',', '.') }}</p>
+            <p><strong>IVA (19%):</strong> ${{ number_format($iva, 0, ',', '.') }}</p>
+            <p><strong>TOTAL:</strong> ${{ number_format($total, 0, ',', '.') }}</p>
         </div>
 
         <div class="footer">
             <p><strong>DOCUMENTO NO VÁLIDO COMO RECIBO DE CAJA.</strong> Este no es un documento comercial. Exija el recibo de caja o factura original para efectos de reclamo.</p>
-            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 de protección de datos y con el Decreto 1377 de 2013, la información suministrada por usted para la realización de este documento será incorporada en una base de datos responsabilidad de {{ $empresaNombre }}, para su tratamiento y la transferencia de datos a terceros. Siendo tratados con la finalidad de: gestión de clientes, gestión administrativa, prospección comercial, fidelización de clientes, mercadeo, publicidad propia, el envío de comunicaciones comerciales sobre nuestros productos y campañas de actualización de datos e información de cambios en el tratamiento de datos personales. La política de tratamiento de datos se podrá consultar en la página {{ $paginaWeb }}.</p>
-            <p>Usted puede ejercer su derecho de acceso, corrección, suspensión, revocación o reclamo por infracción sobre sus datos con un correo electrónico a <strong>{{ $correoContacto }}</strong> o por medio físico enviado a la dirección <strong>{{ $direccionSala }}</strong>.</p>
+            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> Según la Ley 1581 de 2012 y el Decreto 1377 de 2013, la información suministrada será tratada por {{ $empresaNombre }} para fines administrativos, comerciales y de fidelización. Consulte nuestra política en <strong>{{ $paginaWeb }}</strong>.</p>
+            <p>Puede ejercer sus derechos contactando a <strong>{{ $correoContacto }}</strong> o en la dirección <strong>{{ $direccionSala }}</strong>.</p>
         </div>
     </div>
 </body>
