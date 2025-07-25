@@ -182,10 +182,13 @@
         </div>
 
         <div class="footer">
-            <p><strong>DOCUMENTO NO VÁLIDO COMO RECIBO DE CAJA.</strong> Este no es un documento comercial. Exija el recibo de caja o factura original para efectos de reclamo.</p>
-            <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> Según la Ley 1581 de 2012 y el Decreto 1377 de 2013, la información suministrada será tratada por {{ $empresaNombre }} para fines administrativos, comerciales y de fidelización. Consulte nuestra política en <strong>{{ $paginaWeb }}</strong>.</p>
-            <p>Puede ejercer sus derechos contactando a <strong>{{ $correoContacto }}</strong> o en la dirección <strong>{{ $direccionSala }}</strong>.</p>
-        </div>
+    <p><strong>DOCUMENTO NO VÁLIDO COMO RECIBO DE CAJA.</strong> Este no es un documento comercial. Exija el recibo de caja o factura original para efectos de reclamo.</p>
+
+    <p><strong>PROTECCIÓN DE DATOS PERSONALES:</strong> De acuerdo con la Ley Estatutaria 1581 de 2012 de protección de datos y con el Decreto 1377 de 2013, la información suministrada por usted para la realización de este documento será incorporada en una base de datos responsabilidad de {{ $empresaNombre }}, para su tratamiento y la transferencia de datos a terceros. Siendo tratados con la finalidad de: gestión de clientes, gestión administrativa, prospección comercial, fidelización de clientes, mercadeo, publicidad propia, el envío de comunicaciones comerciales sobre nuestros productos y campañas de actualización de datos e información de cambios en el tratamiento de datos personales. La política de tratamiento de datos se podrá consultar en la página <strong>{{ $paginaWeb }}</strong>.</p>
+
+    <p>Usted puede ejercer su derecho de acceso, corrección, suspensión, revocación o reclamo por infracción sobre sus datos con un correo electrónico a <strong>{{ $correoContacto }}</strong> o por medio físico enviado a la dirección <strong>{{ $direccionSala }}</strong>.</p>
+</div>
+
     </div>
 </body>
 </html>
